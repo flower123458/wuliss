@@ -93,9 +93,11 @@ header{background:linear-gradient(135deg,#ff7eb3 0%,#ff95c5 100%);color:#fff;pad
 .panel-header h2{font-size:15px;font-weight:600}
 .panel-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 
-.category-detail-header{background:linear-gradient(135deg,#ff7eb3,#ff95c5);color:#fff;padding:20px;border-radius:var(--radius);margin-bottom:16px}
-.category-detail-header .cd-name{font-size:22px;font-weight:700;margin-bottom:6px}
-.category-detail-header .cd-meta{font-size:13px;opacity:.9}
+.category-detail-header{background:linear-gradient(135deg,#ff7eb3,#ff95c5);color:#fff;padding:20px;border-radius:var(--radius);margin-bottom:16px;position:relative}
+.category-detail-header .cd-name{font-size:22px;font-weight:700;margin-bottom:6px;padding-left:36px}
+.category-detail-header .cd-meta{font-size:13px;opacity:.9;padding-left:36px}
+.category-detail-header .cd-back{position:absolute;top:18px;left:16px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.3);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;padding:0}
+.category-detail-header .cd-back:hover{background:rgba(255,255,255,.5)}
 
 .sku-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .sku-card{background:var(--card);border-radius:10px;padding:14px;box-shadow:var(--shadow);border:1px solid var(--border);cursor:pointer;transition:transform .15s,border-color .15s}
@@ -552,7 +554,7 @@ function renderCategoryDetail(cat){
   const p=items[0];
   const total=items.reduce((s,i)=>s+calcStock(i.id),0);
   const totalValue=items.reduce((s,i)=>s+calcStock(i.id)*(i.purchasePrice||0),0);
-  document.getElementById('categoryDetailHeader').innerHTML=`<div class="cd-name">${escapeHtml(cat)}</div><div class="cd-meta">总库存：${fmt(total)} 件 | 库存价值：${fmtMoney(totalValue)} | 存放：${escapeHtml(p.location)||'—'}</div>`;
+  document.getElementById('categoryDetailHeader').innerHTML=`<button class="cd-back" onclick="navTo('home')" title="返回">‹</button><div class="cd-name">${escapeHtml(cat)}</div><div class="cd-meta">总库存：${fmt(total)} 件 | 库存价值：${fmtMoney(totalValue)} | 存放：${escapeHtml(p.location)||'—'}</div>`;
   document.getElementById('categoryDetailGrid').innerHTML=items.map(p=>{
     const stock=calcStock(p.id);const status=getStatus(p);
     const color=status==='out'?'#fca5a5':status==='low'?'#fde68a':'#a7f3d0';
