@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#ff7eb3">
+<meta name="theme-color" content="#EB9FAA">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="库存工作台">
@@ -15,17 +15,17 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
-  --bg:#fff5f8;--card:#fff;--border:#ffe4ec;--text:#6b4c5a;--muted:#a89098;
-  --primary:#ff7eb3;--primary-light:#fff0f5;--success:#ff9eb5;--success-light:#fff5f8;
-  --danger:#ff6b8a;--danger-light:#ffeef2;--warning:#ffb3d1;--warning-light:#fff5f8;
-  --shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);--radius:12px;
+  --bg:#FCEFF0;--card:#fff;--border:#F7D2D5;--text:#7A555D;--muted:#B58F96;
+  --primary:#EB9FAA;--primary-light:#FCEFF0;--success:#C0CEE4;--success-light:#F0F4FA;
+  --danger:#E86B7A;--danger-light:#FDEDEF;--warning:#F5C06B;--warning-light:#FDF6E8;
+  --shadow:0 1px 3px rgba(122,85,93,.06),0 1px 2px rgba(122,85,93,.04);--radius:12px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:14px}
 button{font-family:inherit}
 input,select,textarea{font-family:inherit;font-size:14px}
 
-header{background:linear-gradient(135deg,#ff7eb3 0%,#ff95c5 100%);color:#fff;padding:14px 20px;box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
+header{background:linear-gradient(135deg,#EB9FAA 0%,#F7D2D5 100%);color:#fff;padding:14px 20px;box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
 .header-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .header-left{display:flex;align-items:center;gap:10px}
 .menu-toggle{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.25);color:#fff;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:18px;display:none;align-items:center;justify-content:center}
@@ -57,9 +57,9 @@ header{background:linear-gradient(135deg,#ff7eb3 0%,#ff95c5 100%);color:#fff;pad
 .cat-item.active{background:var(--primary-light);border-left-color:var(--primary)}
 .cat-item .cname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cat-item .cstock{font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;flex-shrink:0}
-.cat-item .cstock.normal{background:#fff0f5;color:#ff7eb3}
-.cat-item .cstock.low{background:var(--warning-light);color:var(--warning)}
-.cat-item .cstock.out{background:var(--danger-light);color:var(--danger)}
+.cat-item .cstock.normal{background:#F0F4FA;color:#7B98C4}
+.cat-item .cstock.low{background:#FDF6E8;color:#D4A44C}
+.cat-item .cstock.out{background:#FDEDEF;color:#E86B7A}
 
 .main{flex:1;padding:18px;margin-left:240px;transition:margin-left .25s ease;min-width:0}
 .main.full{margin-left:0}
@@ -69,8 +69,8 @@ header{background:linear-gradient(135deg,#ff7eb3 0%,#ff95c5 100%);color:#fff;pad
 .quick-actions{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
 .quick-btn{flex:1;min-width:180px;padding:18px;border-radius:var(--radius);border:none;cursor:pointer;text-align:left;transition:transform .15s,box-shadow .15s;color:#fff;box-shadow:var(--shadow)}
 .quick-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
-.quick-btn.in{background:linear-gradient(135deg,#ff9eb5,#ff7eb3)}
-.quick-btn.out{background:linear-gradient(135deg,#ff6b8a,#ff8fab)}
+.quick-btn.in{background:linear-gradient(135deg,#C0CEE4,#9FB6D9)}
+.quick-btn.out{background:linear-gradient(135deg,#E86B7A,#F28A96)}
 .quick-btn .qa-icon{font-size:26px;margin-bottom:4px}
 .quick-btn .qa-title{font-size:15px;font-weight:600;margin-bottom:2px}
 .quick-btn .qa-sub{font-size:11px;opacity:.9}
@@ -80,7 +80,7 @@ header{background:linear-gradient(135deg,#ff7eb3 0%,#ff95c5 100%);color:#fff;pad
 .stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .stat-icon.blue{background:var(--primary-light);color:var(--primary)}
 .stat-icon.green{background:var(--success-light);color:var(--success)}
-.stat-icon.purple{background:#fff0f5;color:#ff7eb3}
+.stat-icon.purple{background:#FCEFF0;color:#EB9FAA}
 .stat-icon.orange{background:var(--warning-light);color:var(--warning)}
 .stat-icon.red{background:var(--danger-light);color:var(--danger)}
 .stat-icon.teal{background:#f0fdfa;color:#14b8a6}
@@ -93,7 +93,7 @@ header{background:linear-gradient(135deg,#ff7eb3 0%,#ff95c5 100%);color:#fff;pad
 .panel-header h2{font-size:15px;font-weight:600}
 .panel-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 
-.category-detail-header{background:linear-gradient(135deg,#ff7eb3,#ff95c5);color:#fff;padding:20px;border-radius:var(--radius);margin-bottom:16px;position:relative}
+.category-detail-header{background:linear-gradient(135deg,#EB9FAA,#F7D2D5);color:#fff;padding:20px;border-radius:var(--radius);margin-bottom:16px;position:relative}
 .category-detail-header .cd-name{font-size:22px;font-weight:700;margin-bottom:6px;padding-left:36px}
 .category-detail-header .cd-meta{font-size:13px;opacity:.9;padding-left:36px}
 .category-detail-header .cd-back{position:absolute;top:18px;left:16px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.3);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;padding:0}
@@ -104,18 +104,18 @@ header{background:linear-gradient(135deg,#ff7eb3 0%,#ff95c5 100%);color:#fff;pad
 .sku-card:hover{transform:translateY(-2px);border-color:var(--primary)}
 .sku-card .sku-name{font-size:15px;font-weight:600;margin-bottom:4px}
 .sku-card .sku-stock{font-size:28px;font-weight:800;margin:8px 0}
-.sku-card .sku-stock.normal{color:#ff7eb3}
-.sku-card .sku-stock.low{color:var(--warning)}
-.sku-card .sku-stock.out{color:var(--danger)}
+.sku-card .sku-stock.normal{color:#7B98C4}
+.sku-card .sku-stock.low{color:#D4A44C}
+.sku-card .sku-stock.out{color:#E86B7A}
 .sku-card .sku-btns{display:flex;gap:6px;margin-top:10px}
 
 .btn{padding:7px 13px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-primary:hover{background:#4338ca}
 .btn-success{background:var(--success);color:#fff}
-.btn-success:hover{background:#ff7eb3}
+.btn-success:hover{background:#9FB6D9}
 .btn-danger{background:var(--danger);color:#fff}
-.btn-danger:hover{background:#ff6b8a}
+.btn-danger:hover{background:#D45A68}
 .btn-outline{background:#fff;border:1px solid var(--border);color:var(--text)}
 .btn-outline:hover{background:#f9fafb;border-color:#d1d5db}
 .btn-sm{padding:5px 10px;font-size:12px}
@@ -133,9 +133,9 @@ tbody tr:last-child td{border-bottom:none}
 .text-danger{color:var(--danger)}
 .text-warning{color:var(--warning)}
 .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
-.tag-normal{background:#fff0f5;color:#ff7eb3}
-.tag-low{background:var(--warning-light);color:var(--warning)}
-.tag-out-stock{background:var(--danger-light);color:var(--danger)}
+.tag-normal{background:#F0F4FA;color:#7B98C4}
+.tag-low{background:#FDF6E8;color:#D4A44C}
+.tag-out-stock{background:#FDEDEF;color:#E86B7A}
 
 .filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .filters input,.filters select{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff;outline:none;transition:border .2s}
@@ -163,7 +163,7 @@ tbody tr:last-child td{border-bottom:none}
 .empty{text-align:center;padding:32px 20px;color:var(--muted)}
 .empty .icon{font-size:36px;margin-bottom:8px;opacity:.5}
 
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#6b4c5a;color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;z-index:2000;opacity:0;transition:all .3s;box-shadow:0 4px 12px rgba(255,126,179,.2)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#7A555D;color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;z-index:2000;opacity:0;transition:all .3s;box-shadow:0 4px 12px rgba(235,159,170,.2)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .toast.success{background:var(--success)}
 .toast.error{background:var(--danger)}
@@ -192,8 +192,8 @@ tbody tr:last-child td{border-bottom:none}
       <button onclick="document.getElementById('importFile').click()">⬆️ 导入</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       <button onclick="exportExcel()">📊 Excel</button>
-      <button onclick="clearAllData()" style="background:rgba(255,107,138,.2)">🗑️ 清空</button>
-      <button onclick="addToHomeScreen()" style="background:rgba(255,126,179,.2)">📱 添加桌面</button>
+      <button onclick="clearAllData()" style="background:rgba(232,107,122,.2)">🗑️ 清空</button>
+      <button onclick="addToHomeScreen()" style="background:rgba(235,159,170,.2)">📱 添加桌面</button>
     </div>
   </div>
 </header>
@@ -557,7 +557,7 @@ function renderCategoryDetail(cat){
   document.getElementById('categoryDetailHeader').innerHTML=`<button class="cd-back" onclick="navTo('home')" title="返回">‹</button><div class="cd-name">${escapeHtml(cat)}</div><div class="cd-meta">总库存：${fmt(total)} 件 | 库存价值：${fmtMoney(totalValue)} | 存放：${escapeHtml(p.location)||'—'}</div>`;
   document.getElementById('categoryDetailGrid').innerHTML=items.map(p=>{
     const stock=calcStock(p.id);const status=getStatus(p);
-    const color=status==='out'?'#fca5a5':status==='low'?'#fde68a':'#a7f3d0';
+    const color=status==='out'?'#E86B7A':status==='low'?'#F5C06B':'#7B98C4';
     return `<div class="sku-card" onclick="openSkuActionModal('${escapeHtml(cat)}','${escapeHtml(p.sku)}')">
       <div class="sku-name">${escapeHtml(p.sku)}</div>
       <div class="sku-stock ${status}" style="color:${color}">${fmt(stock)}</div>
