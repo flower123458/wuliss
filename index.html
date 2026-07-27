@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#f1bfbc">
+<meta name="theme-color" content="#ffc9ca">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="库存工作台">
@@ -15,24 +15,24 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
-  --bg:#f4deda;--card:#fffafa;--border:#f1bfbc;--text:#7a555d;--muted:#b58f96;
-  --primary:#f1bfbc;--primary-light:#f4deda;--success:#c4f3f0;--success-light:#e8f8f7;
-  --danger:#d98c88;--danger-light:#fce8e6;--warning:#e8b865;--warning-light:#fdf4e3;
-  --shadow:0 1px 3px rgba(122,85,93,.06),0 1px 2px rgba(122,85,93,.04);--radius:12px;
+  --bg:#d0f9f1;--card:#ffffff;--border:#ffc9ca;--text:#6b4c5a;--muted:#a88890;
+  --primary:#ffc9ca;--primary-light:#ffe8e8;--success:#a0e8da;--success-light:#e3f9f4;
+  --danger:#c88787;--danger-light:#f5e3e3;--warning:#e5a85e;--warning-light:#fcf3e6;
+  --shadow:0 1px 3px rgba(107,76,90,.06),0 1px 2px rgba(107,76,90,.04);--radius:12px;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:14px}
 button{font-family:inherit}
 input,select,textarea{font-family:inherit;font-size:14px}
 
-header{background:linear-gradient(135deg,#f1bfbc 0%,#f4deda 100%);color:#7a555d;padding:14px 20px;box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
+header{background:linear-gradient(135deg,#ffc9ca 0%,#ffe8e8 100%);color:#6b4c5a;padding:14px 20px;box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
 .header-inner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .header-left{display:flex;align-items:center;gap:10px}
-.menu-toggle{background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.5);color:#7a555d;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:18px;display:none;align-items:center;justify-content:center}
+.menu-toggle{background:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.5);color:#6b4c5a;width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:18px;display:none;align-items:center;justify-content:center}
 .header-inner h1{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
 .header-inner h1 .logo{font-size:20px}
 .header-actions{display:flex;gap:6px;flex-wrap:wrap}
-.header-actions button{background:rgba(255,255,255,.35);color:#7a555d;border:1px solid rgba(255,255,255,.5);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .2s}
+.header-actions button{background:rgba(255,255,255,.35);color:#6b4c5a;border:1px solid rgba(255,255,255,.5);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .2s}
 .header-actions button:hover{background:rgba(255,255,255,.5)}
 
 .layout{display:flex;min-height:calc(100vh - 56px)}
@@ -57,9 +57,9 @@ header{background:linear-gradient(135deg,#f1bfbc 0%,#f4deda 100%);color:#7a555d;
 .cat-item.active{background:var(--primary-light);border-left-color:var(--primary)}
 .cat-item .cname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cat-item .cstock{font-size:11px;font-weight:600;padding:1px 7px;border-radius:10px;flex-shrink:0}
-.cat-item .cstock.normal{background:#e8f8f7;color:#5bc4bf}
-.cat-item .cstock.low{background:#fdf4e3;color:#c9973a}
-.cat-item .cstock.out{background:#fce8e6;color:#d98c88}
+.cat-item .cstock.normal{background:#e3f9f4;color:#5ac4b4}
+.cat-item .cstock.low{background:#fcf3e6;color:#c68a3e}
+.cat-item .cstock.out{background:#f5e3e3;color:#c88787}
 
 .main{flex:1;padding:18px;margin-left:240px;transition:margin-left .25s ease;min-width:0}
 .main.full{margin-left:0}
@@ -69,8 +69,8 @@ header{background:linear-gradient(135deg,#f1bfbc 0%,#f4deda 100%);color:#7a555d;
 .quick-actions{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
 .quick-btn{flex:1;min-width:180px;padding:18px;border-radius:var(--radius);border:none;cursor:pointer;text-align:left;transition:transform .15s,box-shadow .15s;color:#fff;box-shadow:var(--shadow)}
 .quick-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.12)}
-.quick-btn.in{background:linear-gradient(135deg,#c4f3f0,#a5e8e4)}
-.quick-btn.out{background:linear-gradient(135deg,#d98c88,#e8a8a5)}
+.quick-btn.in{background:linear-gradient(135deg,#a0e8da,#7ddccb)}
+.quick-btn.out{background:linear-gradient(135deg,#c88787,#d9a0a0)}
 .quick-btn .qa-icon{font-size:26px;margin-bottom:4px}
 .quick-btn .qa-title{font-size:15px;font-weight:600;margin-bottom:2px}
 .quick-btn .qa-sub{font-size:11px;opacity:.9}
@@ -80,7 +80,7 @@ header{background:linear-gradient(135deg,#f1bfbc 0%,#f4deda 100%);color:#7a555d;
 .stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
 .stat-icon.blue{background:var(--primary-light);color:var(--primary)}
 .stat-icon.green{background:var(--success-light);color:var(--success)}
-.stat-icon.purple{background:#f4deda;color:#d98c88}
+.stat-icon.purple{background:#ffe8e8;color:#c88787}
 .stat-icon.orange{background:var(--warning-light);color:var(--warning)}
 .stat-icon.red{background:var(--danger-light);color:var(--danger)}
 .stat-icon.teal{background:#f0fdfa;color:#14b8a6}
@@ -93,8 +93,8 @@ header{background:linear-gradient(135deg,#f1bfbc 0%,#f4deda 100%);color:#7a555d;
 .panel-header h2{font-size:15px;font-weight:600}
 .panel-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 
-.category-detail-header{background:linear-gradient(135deg,#f1bfbc,#f4deda);color:#7a555d;padding:20px;border-radius:var(--radius);margin-bottom:16px;position:relative}
-.category-detail-header .cd-back{background:rgba(255,255,255,.4);color:#7a555d}
+.category-detail-header{background:linear-gradient(135deg,#ffc9ca,#ffe8e8);color:#6b4c5a;padding:20px;border-radius:var(--radius);margin-bottom:16px;position:relative}
+.category-detail-header .cd-back{background:rgba(255,255,255,.4);color:#6b4c5a}
 .category-detail-header .cd-back:hover{background:rgba(255,255,255,.6)}
 .category-detail-header .cd-name{font-size:22px;font-weight:700;margin-bottom:6px;padding-left:36px}
 .category-detail-header .cd-meta{font-size:13px;opacity:.9;padding-left:36px}
@@ -106,18 +106,18 @@ header{background:linear-gradient(135deg,#f1bfbc 0%,#f4deda 100%);color:#7a555d;
 .sku-card:hover{transform:translateY(-2px);border-color:var(--primary)}
 .sku-card .sku-name{font-size:15px;font-weight:600;margin-bottom:4px}
 .sku-card .sku-stock{font-size:28px;font-weight:800;margin:8px 0}
-.sku-card .sku-stock.normal{color:#5bc4bf}
-.sku-card .sku-stock.low{color:#c9973a}
-.sku-card .sku-stock.out{color:#d98c88}
+.sku-card .sku-stock.normal{color:#5ac4b4}
+.sku-card .sku-stock.low{color:#c68a3e}
+.sku-card .sku-stock.out{color:#c88787}
 .sku-card .sku-btns{display:flex;gap:6px;margin-top:10px}
 
 .btn{padding:7px 13px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .btn-primary{background:var(--primary);color:#fff}
 .btn-primary:hover{background:#4338ca}
 .btn-success{background:var(--success);color:#fff}
-.btn-success:hover{background:#a5e8e4}
+.btn-success:hover{background:#7ddccb}
 .btn-danger{background:var(--danger);color:#fff}
-.btn-danger:hover{background:#c97672}
+.btn-danger:hover{background:#b06e6e}
 .btn-outline{background:#fff;border:1px solid var(--border);color:var(--text)}
 .btn-outline:hover{background:#f9fafb;border-color:#d1d5db}
 .btn-sm{padding:5px 10px;font-size:12px}
@@ -135,9 +135,9 @@ tbody tr:last-child td{border-bottom:none}
 .text-danger{color:var(--danger)}
 .text-warning{color:var(--warning)}
 .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:500}
-.tag-normal{background:#e8f8f7;color:#5bc4bf}
-.tag-low{background:#fdf4e3;color:#c9973a}
-.tag-out-stock{background:#fce8e6;color:#d98c88}
+.tag-normal{background:#e3f9f4;color:#5ac4b4}
+.tag-low{background:#fcf3e6;color:#c68a3e}
+.tag-out-stock{background:#f5e3e3;color:#c88787}
 
 .filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .filters input,.filters select{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff;outline:none;transition:border .2s}
@@ -165,7 +165,7 @@ tbody tr:last-child td{border-bottom:none}
 .empty{text-align:center;padding:32px 20px;color:var(--muted)}
 .empty .icon{font-size:36px;margin-bottom:8px;opacity:.5}
 
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#7a555d;color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;z-index:2000;opacity:0;transition:all .3s;box-shadow:0 4px 12px rgba(217,140,136,.2)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#6b4c5a;color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;z-index:2000;opacity:0;transition:all .3s;box-shadow:0 4px 12px rgba(200,135,135,.2)}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .toast.success{background:var(--success)}
 .toast.error{background:var(--danger)}
@@ -194,8 +194,8 @@ tbody tr:last-child td{border-bottom:none}
       <button onclick="document.getElementById('importFile').click()">⬆️ 导入</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       <button onclick="exportExcel()">📊 Excel</button>
-      <button onclick="clearAllData()" style="background:rgba(217,140,136,.2)">🗑️ 清空</button>
-      <button onclick="addToHomeScreen()" style="background:rgba(241,191,188,.25)">📱 添加桌面</button>
+      <button onclick="clearAllData()" style="background:rgba(200,135,135,.2)">🗑️ 清空</button>
+      <button onclick="addToHomeScreen()" style="background:rgba(255,201,202,.3)">📱 添加桌面</button>
     </div>
   </div>
 </header>
@@ -559,7 +559,7 @@ function renderCategoryDetail(cat){
   document.getElementById('categoryDetailHeader').innerHTML=`<button class="cd-back" onclick="navTo('home')" title="返回">‹</button><div class="cd-name">${escapeHtml(cat)}</div><div class="cd-meta">总库存：${fmt(total)} 件 | 库存价值：${fmtMoney(totalValue)} | 存放：${escapeHtml(p.location)||'—'}</div>`;
   document.getElementById('categoryDetailGrid').innerHTML=items.map(p=>{
     const stock=calcStock(p.id);const status=getStatus(p);
-    const color=status==='out'?'#d98c88':status==='low'?'#e8b865':'#5bc4bf';
+    const color=status==='out'?'#c88787':status==='low'?'#e5a85e':'#5ac4b4';
     return `<div class="sku-card" onclick="openSkuActionModal('${escapeHtml(cat)}','${escapeHtml(p.sku)}')">
       <div class="sku-name">${escapeHtml(p.sku)}</div>
       <div class="sku-stock ${status}" style="color:${color}">${fmt(stock)}</div>
