@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="库存工作台">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="favicon-32.png">
@@ -190,6 +191,7 @@ tbody tr:last-child td{border-bottom:none}
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       <button onclick="exportExcel()">📊 Excel</button>
       <button onclick="clearAllData()" style="background:rgba(239,68,68,.3)">🗑️ 清空</button>
+      <button onclick="addToHomeScreen()" style="background:rgba(79,70,229,.2)">📱 添加桌面</button>
     </div>
   </div>
 </header>
@@ -739,6 +741,23 @@ function renderAlert(){
 }
 
 async function exportData(){const data=JSON.stringify({products:state.products,transactions:state.transactions},null,2);const blob=new Blob([data],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`周边库存数据_${today()}.json`;a.click();toast('数据已导出','success');}
+
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;console.log('安装提示已捕获');});
+function addToHomeScreen(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choice=>{
+      if(choice.outcome==='accepted'){toast('已添加到桌面','success');}else{toast('已取消','info');}
+      deferredPrompt=null;
+    });
+  }else{
+    toast('请用浏览器菜单的"添加到主屏幕"功能','info');
+    setTimeout(()=>{
+      alert('添加到桌面方法：\n\n【安卓 Chrome】\n点右上角三个点⋮ → 添加到主屏幕\n\n【iPhone Safari】\n点底部分享按钮📤 → 添加到主屏幕\n\n如果还是没有，多刷新几次页面后再试');
+    },500);
+  }
+}
 async function importData(e){
   const file=e.target.files[0];if(!file)return;const reader=new FileReader();
   reader.onload=async ev=>{try{const d=JSON.parse(ev.target.result);if(!d.products||!d.transactions)throw new Error('格式错误');if(confirm(`即将导入：\n商品 ${d.products.length} 条\n流水 ${d.transactions.length} 条\n\n将覆盖当前数据，确认？`)){toast('正在导入...');await Cloud.deleteAll();for(const p of d.products){await Cloud.insertProduct({id:p.id||uid(),name:p.name,sku:p.sku||p.sku,category:p.category||p.name,location:p.location,purchasePrice:p.purchasePrice||0,safetyStock:p.safetyStock||0,notes:p.notes||'',createdAt:p.createdAt||Date.now()});}for(const t of d.transactions){await Cloud.insertTransaction({id:t.id||uid(),type:t.type,productId:t.productId,qty:t.qty,price:t.price||0,date:t.date||today(),operator:t.operator||'',purchaseDate:t.purchaseDate||'',salesChannel:t.salesChannel||'',notes:t.notes||'',createdAt:t.createdAt||Date.now()});}await loadCloudData();toast('数据导入成功','success');}}catch(err){toast('导入失败：'+err.message,'error');}};
