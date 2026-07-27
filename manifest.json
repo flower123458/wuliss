@@ -2,25 +2,30 @@
   "name": "周边库存管理工作台",
   "short_name": "库存工作台",
   "description": "工作室周边库存管理系统",
-  "start_url": "./",
+  "start_url": "https://flower123458.github.io/wuliss/",
+  "scope": "https://flower123458.github.io/wuliss/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f4f6fa",
   "theme_color": "#4f46e5",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "https://flower123458.github.io/wuliss/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "https://flower123458.github.io/wuliss/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "apple-touch-icon.png",
+      "src": "https://flower123458.github.io/wuliss/apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
