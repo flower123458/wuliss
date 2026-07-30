@@ -123,6 +123,7 @@ header{background:linear-gradient(135deg,#ffc9ca 0%,#ffe8e8 100%);color:#6b4c5a;
 .btn-sm{padding:5px 10px;font-size:12px}
 
 .table-wrap{overflow-x:auto}
+.table-wrap tfoot td{background:var(--primary-light);font-weight:600;color:var(--text);border-top:2px solid var(--primary);padding:10px 12px;font-size:13px}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{background:#f9fafb;padding:9px 12px;text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0}
 tbody td{padding:8px 12px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
@@ -276,7 +277,7 @@ tbody tr:last-child td{border-bottom:none}
             <button class="btn btn-success" onclick="openInboundModal()">➕ 新增入库</button>
           </div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>日期</th><th>大类</th><th>SKU</th><th class="text-right">数量</th><th class="text-right">单价</th><th class="text-right">金额</th><th>入库人</th><th>备注</th><th class="text-center">操作</th></tr></thead><tbody id="inboundBody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>日期</th><th>大类</th><th>SKU</th><th class="text-right">数量</th><th class="text-right">单价</th><th class="text-right">金额</th><th>入库人</th><th>备注</th><th class="text-center">操作</th></tr></thead><tbody id="inboundBody"></tbody><tfoot id="inboundFoot" style="display:none"><tr><td colspan="3">总计</td><td class="text-right" id="inTotalQty"></td><td></td><td class="text-right" id="inTotalAmount"></td><td colspan="3" id="inTotalCount" class="text-muted"></td></tr></tfoot></table></div>
       </div>
     </div>
 
@@ -297,7 +298,7 @@ tbody tr:last-child td{border-bottom:none}
             <button class="btn btn-danger" onclick="openOutboundModal()">➕ 新增出库</button>
           </div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>日期</th><th>大类</th><th>SKU</th><th class="text-right">数量</th><th class="text-right">单价</th><th class="text-right">金额</th><th>出库渠道</th><th>出库人</th><th>备注</th><th class="text-center">操作</th></tr></thead><tbody id="outboundBody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>日期</th><th>大类</th><th>SKU</th><th class="text-right">数量</th><th class="text-right">单价</th><th class="text-right">金额</th><th>出库渠道</th><th>出库人</th><th>备注</th><th class="text-center">操作</th></tr></thead><tbody id="outboundBody"></tbody><tfoot id="outboundFoot" style="display:none"><tr><td colspan="3">总计</td><td class="text-right" id="outTotalQty"></td><td></td><td class="text-right" id="outTotalAmount"></td><td colspan="4" class="text-muted" id="outTotalCount"></td></tr></tfoot></table></div>
       </div>
     </div>
 
@@ -689,8 +690,15 @@ function renderInbound(){
   if(opF)rows=rows.filter(t=>t.operator===opF);if(start)rows=rows.filter(t=>t.date>=start);if(end)rows=rows.filter(t=>t.date<=end);
   rows.sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);
   const body=document.getElementById('inboundBody');
-  if(rows.length===0){body.innerHTML=`<tr><td colspan="9"><div class="empty">暂无入库记录</div></td></tr>`;return;}
+  const foot=document.getElementById('inboundFoot');
+  if(rows.length===0){body.innerHTML=`<tr><td colspan="9"><div class="empty">暂无入库记录</div></td></tr>`;foot.style.display='none';return;}
   body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-success"><strong>+${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
+  const totalQty=rows.reduce((s,t)=>s+t.qty,0);
+  const totalAmt=rows.reduce((s,t)=>s+t.qty*(t.price||0),0);
+  document.getElementById('inTotalQty').textContent='+'+fmt(totalQty);
+  document.getElementById('inTotalAmount').textContent=fmtMoney(totalAmt);
+  document.getElementById('inTotalCount').textContent=`共 ${rows.length} 条记录`;
+  foot.style.display='';
 }
 
 // 出库
@@ -745,8 +753,15 @@ function renderOutbound(){
   if(opF)rows=rows.filter(t=>t.operator===opF);if(chF)rows=rows.filter(t=>t.salesChannel===chF);if(start)rows=rows.filter(t=>t.date>=start);if(end)rows=rows.filter(t=>t.date<=end);
   rows.sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);
   const body=document.getElementById('outboundBody');
-  if(rows.length===0){body.innerHTML=`<tr><td colspan="10"><div class="empty">暂无出库记录</div></td></tr>`;return;}
+  const foot=document.getElementById('outboundFoot');
+  if(rows.length===0){body.innerHTML=`<tr><td colspan="10"><div class="empty">暂无出库记录</div></td></tr>`;foot.style.display='none';return;}
   body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-danger"><strong>-${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.salesChannel)||'—'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
+  const totalQty=rows.reduce((s,t)=>s+t.qty,0);
+  const totalAmt=rows.reduce((s,t)=>s+t.qty*(t.price||0),0);
+  document.getElementById('outTotalQty').textContent='-'+fmt(totalQty);
+  document.getElementById('outTotalAmount').textContent=fmtMoney(totalAmt);
+  document.getElementById('outTotalCount').textContent=`共 ${rows.length} 条记录`;
+  foot.style.display='';
 }
 async function deleteTransaction(id){if(confirm('确定删除这条流水记录吗？')){try{await Cloud.deleteTransaction(id);await loadCloudData();toast('记录已删除','success');}catch(e){toast('删除失败','error');}}}
 
