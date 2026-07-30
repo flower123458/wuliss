@@ -341,7 +341,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="form-row-3">
         <div class="form-group"><label>入库数量 <span class="req">*</span></label><input type="number" id="inQty" min="1" placeholder="数量"></div>
         <div class="form-group"><label>采购单价（元）</label><input type="number" id="inPrice" step="0.01" min="0" placeholder="留空用默认价"></div>
-        <div class="form-group"><label>入库日期</label><input type="date" id="inDate"></div>
+        <div class="form-group"><label>入库日期时间</label><input type="datetime-local" id="inDate"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>入库人</label><select id="inOperator"><option value="11">11</option><option value="笋笋">笋笋</option><option value="小碗">小碗</option></select></div>
@@ -365,7 +365,7 @@ tbody tr:last-child td{border-bottom:none}
       <div class="form-row-3">
         <div class="form-group"><label>出库数量 <span class="req">*</span></label><input type="number" id="outQty" min="1" placeholder="数量" oninput="checkOutStock()"></div>
         <div class="form-group"><label>出库单价（元）</label><input type="number" id="outPrice" step="0.01" min="0" placeholder="留空用默认价"></div>
-        <div class="form-group"><label>出库日期</label><input type="date" id="outDate"></div>
+        <div class="form-group"><label>出库日期时间</label><input type="datetime-local" id="outDate"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>出库渠道</label><select id="outSalesChannel"><option value="">—</option><option value="微店">微店</option><option value="闲鱼">闲鱼</option><option value="抖音">抖音</option><option value="微信">微信</option><option value="线下">线下</option></select></div>
@@ -428,6 +428,9 @@ let isLoading=false;
 const fmt=n=>(n||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:2});
 const fmtMoney=n=>'¥'+fmt(n||0);
 const today=()=>new Date().toISOString().slice(0,10);
+const nowTime=()=>{const d=new Date();const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;};
+const toDatetimeLocal=()=>{const d=new Date();const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;};
+const fmtDate=s=>{if(!s)return '—';if(s.length===10)return s;return s.replace('T',' ').slice(0,19);};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast '+type,2500)}
 function escapeHtml(s){return(s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -575,7 +578,7 @@ function renderCategoryDetail(cat){
   const txs=state.transactions.filter(t=>{const prod=getProduct(t.productId);return prod&&prod.category===cat}).sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt).slice(0,20);
   const txBody=document.getElementById('categoryTxBody');
   if(txs.length===0){txBody.innerHTML=`<tr><td colspan="6"><div class="empty">暂无流水</div></td></tr>`;return;}
-  txBody.innerHTML=txs.map(t=>{const prod=getProduct(t.productId);const isIn=t.type==='in';return `<tr><td>${t.date}</td><td>${escapeHtml(prod.sku)}</td><td class="text-center"><span class="tag ${isIn?'tag-normal':'tag-out-stock'}">${isIn?'入库':'出库'}</span></td><td class="text-right ${isIn?'text-success':'text-danger'}"><strong>${isIn?'+':'-'}${fmt(t.qty)}</strong></td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.salesChannel||t.notes)||'—'}</td></tr>`;}).join('');
+  txBody.innerHTML=txs.map(t=>{const prod=getProduct(t.productId);const isIn=t.type==='in';return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td>${escapeHtml(prod.sku)}</td><td class="text-center"><span class="tag ${isIn?'tag-normal':'tag-out-stock'}">${isIn?'入库':'出库'}</span></td><td class="text-right ${isIn?'text-success':'text-danger'}"><strong>${isIn?'+':'-'}${fmt(t.qty)}</strong></td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.salesChannel||t.notes)||'—'}</td></tr>`;}).join('');
 }
 function quickInOut(cat,sku){openSkuActionModal(cat,sku);}
 function openSkuActionModal(cat,sku){
@@ -636,7 +639,7 @@ function openInboundModal(prefillCat,prefillSku){
   fillInSku('inSku',prefillCat,prefillSku);
   document.getElementById('inQty').value='';
   const p=findProduct(prefillCat,prefillSku);document.getElementById('inPrice').value=p&&p.purchasePrice?p.purchasePrice:'';
-  document.getElementById('inDate').value=today();document.getElementById('inPurchaseDate').value=today();
+  document.getElementById('inDate').value=toDatetimeLocal();document.getElementById('inPurchaseDate').value=today();
   document.getElementById('inOperator').value='11';document.getElementById('inNotes').value='';
   document.getElementById('inboundModal').classList.add('show');
 }
@@ -655,18 +658,25 @@ function fillInSku(selId,cat,prefillSku){
 }
 function onInCategoryChange(){const cat=document.getElementById('inCategory').value;fillInSku('inSku',cat,null);const p=findProduct(cat,document.getElementById('inSku').value);document.getElementById('inPrice').value=p&&p.purchasePrice?p.purchasePrice:'';}
 async function saveInbound(){
+  if(window._saving){return;}
   const cat=document.getElementById('inCategory').value;
   const sku=document.getElementById('inSku').value;
   const qty=parseInt(document.getElementById('inQty').value);
   if(!cat||!sku){toast('请选择大类和SKU','error');return;}
   if(!qty||qty<=0){toast('请填写正确的入库数量','error');return;}
+  if(!confirm(`确认入库？\n\n大类：${cat}\nSKU：${sku}\n数量：+${qty}\n入库人：${document.getElementById('inOperator').value}`))return;
+  window._saving=true;
+  const btn=event.target;btn.disabled=true;btn.textContent='提交中...';
   const p=findProduct(cat,sku);
   const price=parseFloat(document.getElementById('inPrice').value)||(p&&p.purchasePrice)||0;
+  const dateRaw=document.getElementById('inDate').value;
+  const dateStr=dateRaw?dateRaw.replace('T',' ')+':00':nowTime();
   try{
-    await Cloud.insertTransaction({id:uid(),type:'in',productId:p.id,qty,price,date:document.getElementById('inDate').value||today(),operator:document.getElementById('inOperator').value,purchaseDate:document.getElementById('inPurchaseDate').value||today(),notes:document.getElementById('inNotes').value.trim(),createdAt:Date.now()});
+    await Cloud.insertTransaction({id:uid(),type:'in',productId:p.id,qty,price,date:dateStr,operator:document.getElementById('inOperator').value,purchaseDate:document.getElementById('inPurchaseDate').value||today(),notes:document.getElementById('inNotes').value.trim(),createdAt:Date.now()});
     closeModal('inboundModal');await loadCloudData();
     toast(`入库成功：${cat} ${sku} +${qty}`,'success');
   }catch(e){toast('入库失败','error');}
+  window._saving=false;btn.disabled=false;btn.textContent='确认入库';
 }
 function renderInbound(){
   const cats=getCategories();
@@ -680,7 +690,7 @@ function renderInbound(){
   rows.sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);
   const body=document.getElementById('inboundBody');
   if(rows.length===0){body.innerHTML=`<tr><td colspan="9"><div class="empty">暂无入库记录</div></td></tr>`;return;}
-  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${t.date}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-success"><strong>+${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
+  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-success"><strong>+${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
 }
 
 // 出库
@@ -691,7 +701,7 @@ function openOutboundModal(prefillCat,prefillSku){
   fillInSku('outSku',prefillCat,prefillSku);
   document.getElementById('outQty').value='';
   const p=findProduct(prefillCat,prefillSku);document.getElementById('outPrice').value=p&&p.purchasePrice?p.purchasePrice:'';
-  document.getElementById('outDate').value=today();document.getElementById('outSalesChannel').value='';document.getElementById('outOperator').value='11';document.getElementById('outNotes').value='';
+  document.getElementById('outDate').value=toDatetimeLocal();document.getElementById('outSalesChannel').value='';document.getElementById('outOperator').value='11';document.getElementById('outNotes').value='';
   document.getElementById('outStockWarn').style.display='none';
   document.getElementById('outboundModal').classList.add('show');
 }
@@ -704,17 +714,24 @@ function checkOutStock(){
   else{warn.style.display='none';}
 }
 async function saveOutbound(){
+  if(window._saving){return;}
   const cat=document.getElementById('outCategory').value;const sku=document.getElementById('outSku').value;
   const qty=parseInt(document.getElementById('outQty').value);
   if(!cat||!sku){toast('请选择大类和SKU','error');return;}if(!qty||qty<=0){toast('请填写正确的出库数量','error');return;}
   const p=findProduct(cat,sku);const stock=p?calcStock(p.id):0;
   if(qty>stock&&!confirm(`当前库存仅 ${stock} 件，确定要出库 ${qty} 件吗？`))return;
+  if(!confirm(`确认出库？\n\n大类：${cat}\nSKU：${sku}\n数量：-${qty}\n出库人：${document.getElementById('outOperator').value}`))return;
+  window._saving=true;
+  const btn=event.target;btn.disabled=true;btn.textContent='提交中...';
   const price=parseFloat(document.getElementById('outPrice').value)||(p&&p.purchasePrice)||0;
+  const dateRaw=document.getElementById('outDate').value;
+  const dateStr=dateRaw?dateRaw.replace('T',' ')+':00':nowTime();
   try{
-    await Cloud.insertTransaction({id:uid(),type:'out',productId:p.id,qty,price,date:document.getElementById('outDate').value||today(),salesChannel:document.getElementById('outSalesChannel').value,operator:document.getElementById('outOperator').value,notes:document.getElementById('outNotes').value.trim(),createdAt:Date.now()});
+    await Cloud.insertTransaction({id:uid(),type:'out',productId:p.id,qty,price,date:dateStr,salesChannel:document.getElementById('outSalesChannel').value,operator:document.getElementById('outOperator').value,notes:document.getElementById('outNotes').value.trim(),createdAt:Date.now()});
     closeModal('outboundModal');await loadCloudData();
     toast(`出库成功：${cat} ${sku} -${qty}`,'success');
   }catch(e){toast('出库失败','error');}
+  window._saving=false;btn.disabled=false;btn.textContent='确认出库';
 }
 function renderOutbound(){
   const cats=getCategories();
@@ -729,7 +746,7 @@ function renderOutbound(){
   rows.sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);
   const body=document.getElementById('outboundBody');
   if(rows.length===0){body.innerHTML=`<tr><td colspan="10"><div class="empty">暂无出库记录</div></td></tr>`;return;}
-  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${t.date}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-danger"><strong>-${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.salesChannel)||'—'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
+  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-danger"><strong>-${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.salesChannel)||'—'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
 }
 async function deleteTransaction(id){if(confirm('确定删除这条流水记录吗？')){try{await Cloud.deleteTransaction(id);await loadCloudData();toast('记录已删除','success');}catch(e){toast('删除失败','error');}}}
 
