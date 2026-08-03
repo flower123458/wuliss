@@ -515,10 +515,10 @@ async function loadCloudData(){
   if(isLoading)return;isLoading=true;document.getElementById('loadingOverlay').style.display='block';
   try{
     const data=await Cloud.loadAll();
-    state.products=data.products.map(p=>({id:p.id,name:p.name,sku:p.sku,category:p.category,location:p.location,purchasePrice:parseFloat(p.purchase_price)||0,safetyStock:p.safety_stock||0,notes:p.notes,createdAt:p.created_at}));
-    state.transactions=data.transactions.map(t=>({id:t.id,type:t.type,productId:t.product_id,qty:t.qty,price:parseFloat(t.price)||0,date:t.date,operator:t.operator,purchaseDate:t.purchase_date,salesChannel:t.sales_channel,notes:t.notes,createdAt:t.created_at}));
+    state.products=(data.products||[]).map(p=>({id:p.id,name:p.name,sku:p.sku,category:p.category,location:p.location,purchasePrice:parseFloat(p.purchase_price)||0,safetyStock:p.safety_stock||0,notes:p.notes,createdAt:p.created_at}));
+    state.transactions=(data.transactions||[]).map(t=>({id:t.id,type:t.type,productId:t.product_id,qty:t.qty,price:parseFloat(t.price)||0,date:t.date,operator:t.operator,purchaseDate:t.purchase_date,salesChannel:t.sales_channel,notes:t.notes,createdAt:t.created_at}));
     refresh();
-  }catch(e){console.error(e);toast('加载数据失败，请检查网络','error');}
+  }catch(e){console.error(e);toast('加载失败，请刷新重试','error');}
   document.getElementById('loadingOverlay').style.display='none';isLoading=false;
 }
 
@@ -929,7 +929,6 @@ function logout(){
 }
 
 function initApp(){
-  renderStatsBar();renderCatNav();renderHome();
   loadCloudData();
   setInterval(()=>{loadCloudData();},30000);
 }
