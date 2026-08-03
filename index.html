@@ -238,7 +238,6 @@ tbody tr:last-child td{border-bottom:none}
     <div class="nav-item" data-nav="inbound" onclick="navTo('inbound')"><span class="icon">📥</span><span>入库记录</span><span class="badge" id="nav-inbound">0</span></div>
     <div class="nav-item" data-nav="outbound" onclick="navTo('outbound')"><span class="icon">📤</span><span>出库记录</span><span class="badge" id="nav-outbound">0</span></div>
     <div class="nav-item" data-nav="alert" onclick="navTo('alert')"><span class="icon">⚠️</span><span>库存预警</span><span class="badge" id="nav-alert">0</span></div>
-    <div class="nav-item" data-nav="profit" onclick="navTo('profit')"><span class="icon">💰</span><span>利润分析</span></div>
     <div class="nav-section-title">商品大类</div>
     <div id="catNavList"></div>
     <div class="nav-section-title">快捷操作</div>
@@ -319,7 +318,7 @@ tbody tr:last-child td{border-bottom:none}
             <button class="btn btn-danger" onclick="openOutboundModal()">➕ 新增出库</button>
           </div>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>日期</th><th>大类</th><th>SKU</th><th class="text-right">数量</th><th class="text-right">售价</th><th class="text-right">金额</th><th>出库渠道</th><th>出库人</th><th>备注</th><th class="text-center">操作</th></tr></thead><tbody id="outboundBody"></tbody><tfoot id="outboundFoot" style="display:none"><tr><td colspan="3">总计</td><td class="text-right" id="outTotalQty"></td><td></td><td class="text-right" id="outTotalAmount"></td><td colspan="4" class="text-muted" id="outTotalCount"></td></tr></tfoot></table></div>
+        <div class="table-wrap"><table><thead><tr><th>日期</th><th>大类</th><th>SKU</th><th class="text-right">数量</th><th class="text-right">单价</th><th class="text-right">金额</th><th>出库渠道</th><th>出库人</th><th>备注</th><th class="text-center">操作</th></tr></thead><tbody id="outboundBody"></tbody><tfoot id="outboundFoot" style="display:none"><tr><td colspan="3">总计</td><td class="text-right" id="outTotalQty"></td><td></td><td class="text-right" id="outTotalAmount"></td><td colspan="4" class="text-muted" id="outTotalCount"></td></tr></tfoot></table></div>
       </div>
     </div>
 
@@ -328,14 +327,6 @@ tbody tr:last-child td{border-bottom:none}
       <div class="panel">
         <div class="panel-header"><h2>库存预警</h2><button class="btn btn-outline btn-sm" onclick="renderAlert()">🔄 刷新</button></div>
         <div class="table-wrap"><table><thead><tr><th>大类</th><th>SKU</th><th class="text-right">当前库存</th><th class="text-right">安全库存</th><th class="text-right">缺口</th><th class="text-center">状态</th><th>存放</th></tr></thead><tbody id="alertBody"></tbody></table></div>
-      </div>
-    </div>
-
-    <div id="page-profit" class="page" style="display:none">
-      <div class="panel">
-        <div class="panel-header"><h2>💰 利润分析</h2><button class="btn btn-outline btn-sm" onclick="renderProfit()">🔄 刷新</button></div>
-        <div style="padding:0 16px 12px;font-size:12px;color:var(--muted)">按商品大类统计：销售收入（出库售价×数量）- 采购成本（采购单价×数量）= 利润</div>
-        <div class="table-wrap"><table><thead><tr><th>大类</th><th class="text-right">入库数量</th><th class="text-right">采购成本</th><th class="text-right">出库数量</th><th class="text-right">销售收入</th><th class="text-right">利润</th><th class="text-right">利润率</th></tr></thead><tbody id="profitBody"></tbody><tfoot id="profitFoot" style="display:none"></tfoot></table></div>
       </div>
     </div>
   </main>
@@ -394,7 +385,7 @@ tbody tr:last-child td{border-bottom:none}
       </div>
       <div class="form-row-3">
         <div class="form-group"><label>出库数量 <span class="req">*</span></label><input type="number" id="outQty" min="1" placeholder="数量" oninput="checkOutStock()"></div>
-        <div class="form-group"><label>出库售价（元）</label><input type="number" id="outPrice" step="0.01" min="0" placeholder="留空用默认价"></div>
+        <div class="form-group"><label>出库单价（元）</label><input type="number" id="outPrice" step="0.01" min="0" placeholder="留空用默认价"></div>
         <div class="form-group"><label>出库日期时间</label><input type="datetime-local" id="outDate"></div>
       </div>
       <div class="form-row">
@@ -482,7 +473,6 @@ function navTo(page,cat){
   if(page==='inbound')renderInbound();
   if(page==='outbound')renderOutbound();
   if(page==='alert')renderAlert();
-  if(page==='profit')renderProfit();
   if(page==='category-detail'){currentCategory=cat;renderCategoryDetail(cat);}
   if(window.innerWidth<=768){document.getElementById('sidebar').classList.remove('mobile-show');document.getElementById('overlay').classList.remove('show');}
 }
@@ -515,10 +505,10 @@ async function loadCloudData(){
   if(isLoading)return;isLoading=true;document.getElementById('loadingOverlay').style.display='block';
   try{
     const data=await Cloud.loadAll();
-    state.products=(data.products||[]).map(p=>({id:p.id,name:p.name,sku:p.sku,category:p.category,location:p.location,purchasePrice:parseFloat(p.purchase_price)||0,safetyStock:p.safety_stock||0,notes:p.notes,createdAt:p.created_at}));
-    state.transactions=(data.transactions||[]).map(t=>({id:t.id,type:t.type,productId:t.product_id,qty:t.qty,price:parseFloat(t.price)||0,date:t.date,operator:t.operator,purchaseDate:t.purchase_date,salesChannel:t.sales_channel,notes:t.notes,createdAt:t.created_at}));
+    state.products=data.products.map(p=>({id:p.id,name:p.name,sku:p.sku,category:p.category,location:p.location,purchasePrice:parseFloat(p.purchase_price)||0,safetyStock:p.safety_stock||0,notes:p.notes,createdAt:p.created_at}));
+    state.transactions=data.transactions.map(t=>({id:t.id,type:t.type,productId:t.product_id,qty:t.qty,price:parseFloat(t.price)||0,date:t.date,operator:t.operator,purchaseDate:t.purchase_date,salesChannel:t.sales_channel,notes:t.notes,createdAt:t.created_at}));
     refresh();
-  }catch(e){console.error(e);toast('加载失败，请刷新重试','error');}
+  }catch(e){console.error(e);toast('加载数据失败，请检查网络','error');}
   document.getElementById('loadingOverlay').style.display='none';isLoading=false;
 }
 
@@ -806,37 +796,7 @@ function renderAlert(){
   }).join('');
 }
 
-function renderProfit(){
-  const cats=getCategories();
-  const body=document.getElementById('profitBody');
-  const foot=document.getElementById('profitFoot');
-  if(cats.length===0){body.innerHTML=`<tr><td colspan="7"><div class="empty">暂无商品数据</div></td></tr>`;foot.style.display='none';return;}
-  const rows=cats.map(cat=>{
-    const inTx=state.transactions.filter(t=>t.type==='in'&&getProduct(t.productId)&&getProduct(t.productId).category===cat);
-    const outTx=state.transactions.filter(t=>t.type==='out'&&getProduct(t.productId)&&getProduct(t.productId).category===cat);
-    const inQty=inTx.reduce((s,t)=>s+t.qty,0);
-    const inCost=inTx.reduce((s,t)=>s+t.qty*(t.price||0),0);
-    const outQty=outTx.reduce((s,t)=>s+t.qty,0);
-    const outRevenue=outTx.reduce((s,t)=>s+t.qty*(t.price||0),0);
-    const profit=outRevenue-inCost;
-    const margin=inCost>0?(profit/inCost*100):0;
-    return{cat,inQty,inCost,outQty,outRevenue,profit,margin};
-  });
-  body.innerHTML=rows.map(r=>{
-    const profitColor=r.profit>0?'#5ac4b4':r.profit<0?'#c88787':'var(--muted)';
-    const marginColor=r.margin>0?'#5ac4b4':r.margin<0?'#c88787':'var(--muted)';
-    return `<tr><td><strong>${escapeHtml(r.cat)}</strong></td><td class="text-right">${fmt(r.inQty)}</td><td class="text-right">${fmtMoney(r.inCost)}</td><td class="text-right">${fmt(r.outQty)}</td><td class="text-right">${fmtMoney(r.outRevenue)}</td><td class="text-right"><strong style="color:${profitColor}">${r.profit>=0?'+':''}${fmtMoney(r.profit)}</strong></td><td class="text-right" style="color:${marginColor}">${r.margin>0?'+':''}${r.margin.toFixed(1)}%</td></tr>`;
-  }).join('');
-  const tInQty=rows.reduce((s,r)=>s+r.inQty,0);
-  const tInCost=rows.reduce((s,r)=>s+r.inCost,0);
-  const tOutQty=rows.reduce((s,r)=>s+r.outQty,0);
-  const tOutRev=rows.reduce((s,r)=>s+r.outRevenue,0);
-  const tProfit=tOutRev-tInCost;
-  const tMargin=tInCost>0?(tProfit/tInCost*100):0;
-  const tProfitColor=tProfit>0?'#5ac4b4':tProfit<0?'#c88787':'var(--muted)';
-  foot.innerHTML=`<tr><td>总计</td><td class="text-right">${fmt(tInQty)}</td><td class="text-right">${fmtMoney(tInCost)}</td><td class="text-right">${fmt(tOutQty)}</td><td class="text-right">${fmtMoney(tOutRev)}</td><td class="text-right"><strong style="color:${tProfitColor}">${tProfit>=0?'+':''}${fmtMoney(tProfit)}</strong></td><td class="text-right">${tMargin>0?'+':''}${tMargin.toFixed(1)}%</td></tr>`;
-  foot.style.display='';
-}const data=JSON.stringify({products:state.products,transactions:state.transactions},null,2);const blob=new Blob([data],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`周边库存数据_${today()}.json`;a.click();toast('数据已导出','success');}
+async function exportData(){const data=JSON.stringify({products:state.products,transactions:state.transactions},null,2);const blob=new Blob([data],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`周边库存数据_${today()}.json`;a.click();toast('数据已导出','success');}
 
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;console.log('安装提示已捕获');});
@@ -888,7 +848,7 @@ function refresh(){
   const cactive=document.querySelector('.cat-item.active');
   if(cactive&&document.getElementById('page-category-detail').style.display!=='none'){renderCategoryDetail(currentCategory);return;}
   const page=active?active.dataset.nav:'home';
-  if(page==='home')renderHome();if(page==='all')renderAll();if(page==='inbound')renderInbound();if(page==='outbound')renderOutbound();if(page==='alert')renderAlert();if(page==='profit')renderProfit();
+  if(page==='home')renderHome();if(page==='all')renderAll();if(page==='inbound')renderInbound();if(page==='outbound')renderOutbound();if(page==='alert')renderAlert();
 }
 // ===== 登录系统 =====
 const AUTH_ACCOUNT='33baofu';
@@ -929,6 +889,7 @@ function logout(){
 }
 
 function initApp(){
+  renderStatsBar();renderCatNav();renderHome();
   loadCloudData();
   setInterval(()=>{loadCloudData();},30000);
 }
