@@ -413,6 +413,26 @@ tbody tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<!-- 修改流水 Modal -->
+<div class="modal-overlay" id="editTxModal">
+  <div class="modal">
+    <div class="modal-header"><h3>修改记录</h3><button class="modal-close" onclick="closeModal('editTxModal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>数量 <span class="req">*</span></label><input type="number" id="editTxQty" min="1" placeholder="数量"></div>
+        <div class="form-group"><label>单价（元）</label><input type="number" id="editTxPrice" step="0.01" min="0" placeholder="0.00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>日期时间</label><input type="datetime-local" id="editTxDate"></div>
+        <div class="form-group"><label id="editTxOperatorLabel">操作人</label><select id="editTxOperator"><option value="11">11</option><option value="笋笋">笋笋</option><option value="小碗">小碗</option></select></div>
+      </div>
+      <div class="form-group" id="editTxChannelWrap"><label>出库渠道</label><select id="editTxChannel"><option value="">—</option><option value="微店">微店</option><option value="闲鱼">闲鱼</option><option value="抖音">抖音</option><option value="微信">微信</option><option value="线下">线下</option></select></div>
+      <div class="form-group"><label>备注</label><textarea id="editTxNotes" placeholder="备注信息"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('editTxModal')">取消</button><button class="btn btn-primary" onclick="saveEditTransaction()">保存修改</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <div id="loadingOverlay" style="position:fixed;top:56px;left:0;right:0;background:#fff;border-bottom:1px solid var(--border);padding:8px 20px;display:none;z-index:99;text-align:center;font-size:13px;color:var(--muted)">⏳ 正在同步云端数据...</div>
 
@@ -442,6 +462,7 @@ const Cloud={
   async deleteProduct(id){await fetch(API_BASE+'/products?id=eq.'+id,{method:'DELETE',headers:API_HEADERS});},
   async insertTransaction(t){return fetch(API_BASE+'/transactions',{method:'POST',headers:API_HEADERS,body:JSON.stringify({id:t.id,type:t.type,product_id:t.productId,qty:t.qty,price:t.price||0,date:t.date,operator:t.operator||'',purchase_date:t.purchaseDate||'',sales_channel:t.salesChannel||'',notes:t.notes,created_at:t.createdAt})}).then(r=>r.json());},
   async deleteTransaction(id){await fetch(API_BASE+'/transactions?id=eq.'+id,{method:'DELETE',headers:API_HEADERS});},
+  async updateTransaction(id,data){return fetch(API_BASE+'/transactions?id=eq.'+id,{method:'PATCH',headers:API_HEADERS,body:JSON.stringify(data)}).then(r=>r.json());},
   async deleteAll(){await fetch(API_BASE+'/transactions?id=neq.x',{method:'DELETE',headers:API_HEADERS});await fetch(API_BASE+'/products?id=neq.x',{method:'DELETE',headers:API_HEADERS});}
 };
 
@@ -717,7 +738,7 @@ function renderInbound(){
   const body=document.getElementById('inboundBody');
   const foot=document.getElementById('inboundFoot');
   if(rows.length===0){body.innerHTML=`<tr><td colspan="9"><div class="empty">暂无入库记录</div></td></tr>`;foot.style.display='none';return;}
-  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-success"><strong>+${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
+  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-success"><strong>+${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="openEditTransactionModal('${t.id}')">✏️</button><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
   const totalQty=rows.reduce((s,t)=>s+t.qty,0);
   const totalAmt=rows.reduce((s,t)=>s+t.qty*(t.price||0),0);
   document.getElementById('inTotalQty').textContent='+'+fmt(totalQty);
@@ -780,7 +801,7 @@ function renderOutbound(){
   const body=document.getElementById('outboundBody');
   const foot=document.getElementById('outboundFoot');
   if(rows.length===0){body.innerHTML=`<tr><td colspan="10"><div class="empty">暂无出库记录</div></td></tr>`;foot.style.display='none';return;}
-  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-danger"><strong>-${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.salesChannel)||'—'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
+  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-danger"><strong>-${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.salesChannel)||'—'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="openEditTransactionModal('${t.id}')">✏️</button><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
   const totalQty=rows.reduce((s,t)=>s+t.qty,0);
   const totalAmt=rows.reduce((s,t)=>s+t.qty*(t.price||0),0);
   document.getElementById('outTotalQty').textContent='-'+fmt(totalQty);
@@ -789,6 +810,41 @@ function renderOutbound(){
   foot.style.display='';
 }
 async function deleteTransaction(id){if(confirm('确定删除这条流水记录吗？')){try{await Cloud.deleteTransaction(id);await loadCloudData();toast('记录已删除','success');}catch(e){toast('删除失败','error');}}}
+let editingTxId=null;
+async function openEditTransactionModal(id){
+  const t=state.transactions.find(x=>x.id===id);
+  if(!t)return;
+  editingTxId=id;
+  document.getElementById('editTxQty').value=t.qty;
+  document.getElementById('editTxPrice').value=t.price||'';
+  document.getElementById('editTxDate').value=(t.date||'').replace(' ','T').slice(0,16);
+  document.getElementById('editTxOperatorLabel').textContent=t.type==='in'?'入库人':'出库登记人';
+  document.getElementById('editTxOperator').value=t.operator||'11';
+  const chWrap=document.getElementById('editTxChannelWrap');
+  if(t.type==='out'){chWrap.style.display='';document.getElementById('editTxChannel').value=t.salesChannel||'';}
+  else{chWrap.style.display='none';}
+  document.getElementById('editTxNotes').value=t.notes||'';
+  document.getElementById('editTxModal').classList.add('show');
+}
+async function saveEditTransaction(){
+  if(!editingTxId){toast('未选中记录','error');return;}
+  const qty=parseInt(document.getElementById('editTxQty').value);
+  if(!qty||qty<=0){toast('请填写正确的数量','error');return;}
+  const price=parseFloat(document.getElementById('editTxPrice').value)||0;
+  const dateRaw=document.getElementById('editTxDate').value;
+  const dateStr=dateRaw?dateRaw.replace('T',' ')+':00':nowTime();
+  const operator=document.getElementById('editTxOperator').value;
+  const notes=document.getElementById('editTxNotes').value.trim();
+  const t=state.transactions.find(x=>x.id===editingTxId);
+  const data={qty,price,date:dateStr,operator,notes};
+  if(t&&t.type==='out'){data.salesChannel=document.getElementById('editTxChannel').value;}
+  try{
+    await Cloud.updateTransaction(editingTxId,data);
+    closeModal('editTxModal');
+    await loadCloudData();
+    toast('记录已更新','success');
+  }catch(e){toast('更新失败','error');console.error(e);}
+}
 
 function renderAlert(){
   const items=state.products.map(p=>({p,stock:calcStock(p.id),status:getStatus(p)})).filter(x=>x.status!=='normal').sort((a,b)=>a.status===b.status?a.stock-b.stock:(a.status==='out'?-1:1));
