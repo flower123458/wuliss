@@ -297,6 +297,21 @@ tbody tr:last-child td{border-bottom:none}
       </div>
     </div>
 
+    <!-- 按人库存页 -->
+    <div id="page-person-stock" class="page" style="display:none">
+      <div class="category-detail-header" id="personStockHeader"></div>
+      <div class="panel">
+        <div class="panel-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><h2>👤 按人库存</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="personStockOpBtns">
+            <button class="btn btn-sm" data-op="11" onclick="setPersonStockOp('11')">11</button>
+            <button class="btn btn-sm" data-op="笋笋" onclick="setPersonStockOp('笋笋')">笋笋</button>
+            <button class="btn btn-sm" data-op="小碗" onclick="setPersonStockOp('小碗')">小碗</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>SKU</th><th class="text-right">剩余数量</th></tr></thead><tbody id="personStockBody"></tbody></table></div>
+      </div>
+    </div>
+
     <!-- 入库记录页 -->
     <div id="page-inbound" class="page" style="display:none">
       <div class="panel">
@@ -417,7 +432,7 @@ tbody tr:last-child td{border-bottom:none}
         <div class="form-group"><label>入库日期时间</label><input type="datetime-local" id="inDate"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>入库人</label><select id="inOperator"><option value="11">11</option><option value="笋笋">笋笋</option><option value="小碗">小碗</option></select></div>
+        <div class="form-group"><label>入库人</label><div id="inOperatorDisplay" style="padding:9px 12px;background:#f3f4f6;border-radius:8px;font-weight:600;color:var(--primary)">—</div><input type="hidden" id="inOperator"></div>
         <div class="form-group"><label>采购日期</label><input type="date" id="inPurchaseDate"></div>
       </div>
       <div class="form-group"><label>备注</label><textarea id="inNotes" placeholder="采购批次、备注等"></textarea></div>
@@ -442,7 +457,7 @@ tbody tr:last-child td{border-bottom:none}
       </div>
       <div class="form-row">
         <div class="form-group"><label>出库渠道</label><select id="outSalesChannel"><option value="">—</option><option value="微店">微店</option><option value="闲鱼">闲鱼</option><option value="抖音">抖音</option><option value="微信">微信</option><option value="线下">线下</option></select></div>
-        <div class="form-group"><label>出库登记人</label><select id="outOperator"><option value="11">11</option><option value="笋笋">笋笋</option><option value="小碗">小碗</option></select></div>
+        <div class="form-group"><label>出库登记人</label><div id="outOperatorDisplay" style="padding:9px 12px;background:#f3f4f6;border-radius:8px;font-weight:600;color:var(--primary)">—</div><input type="hidden" id="outOperator"></div>
       </div>
       <div class="form-group"><label>备注</label><textarea id="outNotes" placeholder="备注信息"></textarea></div>
       <div id="outStockWarn" style="display:none" class="text-danger"></div>
@@ -522,9 +537,11 @@ const Cloud={
 let state={products:[],transactions:[]};
 let currentCategory=null;
 let isLoading=false;
+let currentOperator=null;
 let txFilter={start:'',end:'',sku:''};
 const TX_PAGE_SIZE=20;
 let txPagination={page:1};
+let personStockOperator='';
 
 const fmt=n=>(n||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:2});
 const fmtMoney=n=>'¥'+fmt(n||0);
@@ -555,6 +572,7 @@ function navTo(page,cat){
     if(page==='alert')renderAlert();
     if(page==='category-detail'){currentCategory=cat;renderCategoryDetail(cat);}
     if(page==='expected')renderExpected();
+    if(page==='person-stock'){currentCategory=cat;renderPersonStock(cat);}
   if(window.innerWidth<=768){document.getElementById('sidebar').classList.remove('mobile-show');document.getElementById('overlay').classList.remove('show');}
 }
 function navToCategory(cat){navTo('category-detail',cat);}
@@ -678,7 +696,7 @@ function renderCategoryDetail(cat){
   const p=items[0];
   const total=items.reduce((s,i)=>s+calcStock(i.id),0);
   const totalValue=items.reduce((s,i)=>s+calcStock(i.id)*(i.purchasePrice||0),0);
-  document.getElementById('categoryDetailHeader').innerHTML=`<button class="cd-back" onclick="navTo('home')" title="返回">‹</button><div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="cd-name">${escapeHtml(cat)}</div><button class="btn btn-primary btn-sm" onclick="navTo('expected','${escapeHtml(cat)}')">📋 到货表</button></div><div class="cd-meta">总库存：${fmt(total)} 件 | 库存价值：${fmtMoney(totalValue)} | 分类：${escapeHtml(p.location)||'—'}</div>`;
+  document.getElementById('categoryDetailHeader').innerHTML=`<button class="cd-back" onclick="navTo('home')" title="返回">‹</button><div style="display:flex;justify-content:space-between;align-items:flex-start"><div class="cd-name">${escapeHtml(cat)}</div><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="navTo('person-stock','${escapeHtml(cat)}')">👤 按人库存</button><button class="btn btn-primary btn-sm" onclick="navTo('expected','${escapeHtml(cat)}')">📋 到货表</button></div></div><div class="cd-meta">总库存：${fmt(total)} 件 | 库存价值：${fmtMoney(totalValue)} | 分类：${escapeHtml(p.location)||'—'}</div>`;
   document.getElementById('categoryDetailGrid').innerHTML=items.map(p=>{
     const stock=calcStock(p.id);const status=getStatus(p);
     const color=status==='out'?'#c88787':status==='low'?'#e5a85e':'#5ac4b4';
@@ -825,7 +843,7 @@ function openInboundModal(prefillCat,prefillSku){
   document.getElementById('inQty').value='';
   const p=findProduct(prefillCat,prefillSku);document.getElementById('inPrice').value=p&&p.purchasePrice?p.purchasePrice:'';
   document.getElementById('inDate').value=toDatetimeLocal();document.getElementById('inPurchaseDate').value=today();
-  document.getElementById('inOperator').value='11';document.getElementById('inNotes').value='';
+  document.getElementById('inOperator').value=currentOperator||'11';document.getElementById('inOperatorDisplay').textContent=currentOperator||'11';document.getElementById('inNotes').value='';
   document.getElementById('inboundModal').classList.add('show');
 }
 function fillInSku(selId,cat,prefillSku){
@@ -893,7 +911,7 @@ function openOutboundModal(prefillCat,prefillSku){
   fillInSku('outSku',prefillCat,prefillSku);
   document.getElementById('outQty').value='';
   const p=findProduct(prefillCat,prefillSku);document.getElementById('outPrice').value=p&&p.purchasePrice?p.purchasePrice:'';
-  document.getElementById('outDate').value=toDatetimeLocal();document.getElementById('outSalesChannel').value='';document.getElementById('outOperator').value='11';document.getElementById('outNotes').value='';
+  document.getElementById('outDate').value=toDatetimeLocal();document.getElementById('outSalesChannel').value='';document.getElementById('outOperator').value=currentOperator||'11';document.getElementById('outOperatorDisplay').textContent=currentOperator||'11';document.getElementById('outNotes').value='';
   document.getElementById('outStockWarn').style.display='none';
   document.getElementById('outboundModal').classList.add('show');
 }
@@ -1088,9 +1106,37 @@ function refresh(){
   const page=active?active.dataset.nav:'home';
   if(page==='home')renderHome();if(page==='all')renderAll();if(page==='inbound')renderInbound();if(page==='outbound')renderOutbound();if(page==='alert')renderAlert();
 }
+function renderPersonStock(cat){
+  const items=getProductsByCategory(cat);
+  if(items.length===0){navTo('home');return;}
+  const total=items.reduce((s,i)=>s+calcStock(i.id),0);
+  const totalValue=items.reduce((s,i)=>s+calcStock(i.id)*(i.purchasePrice||0),0);
+  const p=items[0];
+  const op=personStockOperator||currentOperator||OPERATOR_OPTIONS[0];
+  document.getElementById('personStockHeader').innerHTML=`<button class="cd-back" onclick="navTo('category-detail','${escapeHtml(cat)}')" title="返回">‹</button><div class="cd-name">${escapeHtml(cat)}</div><div class="cd-meta">总库存：${fmt(total)} 件 | 库存价值：${fmtMoney(totalValue)} | 分类：${escapeHtml(p.location)||'—'}</div>`;
+  document.querySelectorAll('#personStockOpBtns button').forEach(b=>{
+    const active=b.dataset.op===op;
+    b.className='btn btn-sm '+(active?'btn-primary':'btn-outline');
+    b.style.color=active?'#fff':'';
+    b.style.background=active?'var(--primary)':'';
+  });
+  const body=document.getElementById('personStockBody');
+  const data=items.map(p=>{
+    const inQty=state.transactions.filter(t=>t.type==='in'&&t.productId===p.id&&t.operator===op).reduce((a,t)=>a+t.qty,0);
+    const outQty=state.transactions.filter(t=>t.type==='out'&&t.productId===p.id&&t.operator===op).reduce((a,t)=>a+t.qty,0);
+    return {sku:p.sku,remain:inQty-outQty};
+  }).sort((a,b)=>b.remain-a.remain);
+  if(data.length===0){body.innerHTML=`<tr><td colspan="2"><div class="empty">暂无 SKU</div></td></tr>`;return;}
+  body.innerHTML=data.map(d=>`<tr><td>${escapeHtml(d.sku)}</td><td class="text-right"><strong style="color:${d.remain<0?'var(--danger)':d.remain>0?'var(--success)':'inherit'}">${fmt(d.remain)}</strong></td></tr>`).join('');
+}
+function setPersonStockOp(op){personStockOperator=op;renderPersonStock(currentCategory);}
+
 // ===== 登录系统 =====
-const AUTH_ACCOUNT='33baofu';
-const AUTH_PASSWORD='rjdj';
+const AUTH_ACCOUNTS=[
+  {user:'11',pass:'11',operator:'11'},
+  {user:'笋笋',pass:'sunsun',operator:'笋笋'},
+  {user:'小碗',pass:'xiaowan',operator:'小碗'}
+];
 const AUTH_KEY='wuliss_auth';
 const AUTH_EXPIRE_DAYS=7;
 
@@ -1099,7 +1145,7 @@ function checkAuth(){
   if(!raw)return false;
   try{
     const data=JSON.parse(raw);
-    if(data.exp&&Date.now()<data.exp)return true;
+    if(data.exp&&Date.now()<data.exp){currentOperator=data.operator||null;return true;}
     localStorage.removeItem(AUTH_KEY);
     return false;
   }catch(e){return false;}
@@ -1109,9 +1155,11 @@ function doLogin(){
   const user=document.getElementById('loginUser').value.trim();
   const pass=document.getElementById('loginPass').value.trim();
   const errEl=document.getElementById('loginError');
-  if(user===AUTH_ACCOUNT&&pass===AUTH_PASSWORD){
+  const acc=AUTH_ACCOUNTS.find(a=>a.user===user&&a.pass===pass);
+  if(acc){
+    currentOperator=acc.operator;
     const exp=Date.now()+AUTH_EXPIRE_DAYS*24*60*60*1000;
-    localStorage.setItem(AUTH_KEY,JSON.stringify({user,exp}));
+    localStorage.setItem(AUTH_KEY,JSON.stringify({user,operator:acc.operator,exp}));
     document.getElementById('loginPage').style.display='none';
     document.getElementById('loginError').textContent='';
     initApp();
