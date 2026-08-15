@@ -998,9 +998,13 @@ async function saveEditTransaction(){
   if(t&&t.type==='out'){data.salesChannel=document.getElementById('editTxChannel').value;}
   try{
     await Cloud.updateTransaction(editingTxId,data);
+    // 先更新本地数据并立即重绘，避免与 30s 自动刷新的 isLoading 竞态导致界面不刷新
+    const t=state.transactions.find(x=>x.id===editingTxId);
+    if(t){t.qty=qty;t.price=price;t.date=dateStr;t.operator=operator;t.notes=notes;if(t.type==='out')t.salesChannel=document.getElementById('editTxChannel').value;}
     closeModal('editTxModal');
-    await loadCloudData();
+    refresh();
     toast('记录已更新','success');
+    loadCloudData();
   }catch(e){toast('更新失败','error');console.error(e);}
 }
 
