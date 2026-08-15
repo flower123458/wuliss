@@ -537,7 +537,7 @@ const Cloud={
   async deleteProduct(id){await fetch(API_BASE+'/products?id=eq.'+id,{method:'DELETE',headers:API_HEADERS});},
   async insertTransaction(t){return fetch(API_BASE+'/transactions',{method:'POST',headers:API_HEADERS,body:JSON.stringify({id:t.id,type:t.type,product_id:t.productId,qty:t.qty,price:t.price||0,date:t.date,operator:t.operator||'',purchase_date:t.purchaseDate||'',sales_channel:t.salesChannel||'',notes:t.notes,created_at:t.createdAt})}).then(r=>r.json());},
   async deleteTransaction(id){await fetch(API_BASE+'/transactions?id=eq.'+id,{method:'DELETE',headers:API_HEADERS});},
-  async updateTransaction(id,data){return fetch(API_BASE+'/transactions?id=eq.'+id,{method:'PATCH',headers:API_HEADERS,body:JSON.stringify(data)}).then(r=>r.json());},
+  async updateTransaction(id,data){const body={qty:data.qty,price:data.price,date:data.date,operator:data.operator,notes:data.notes};if(data.salesChannel!==undefined)body.sales_channel=data.salesChannel;return fetch(API_BASE+'/transactions?id=eq.'+id,{method:'PATCH',headers:API_HEADERS,body:JSON.stringify(body)}).then(r=>{if(!r.ok)throw new Error('update failed '+r.status);return r.json();});},
   async deleteAll(){await fetch(API_BASE+'/transactions?id=neq.x',{method:'DELETE',headers:API_HEADERS});await fetch(API_BASE+'/products?id=neq.x',{method:'DELETE',headers:API_HEADERS});}
 };
 
