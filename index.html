@@ -225,7 +225,7 @@ tbody tr:last-child td{border-bottom:none}
       <button onclick="document.getElementById('importFile').click()">⬆️ 导入</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       <button onclick="openExportModal('excel')">📊 Excel</button>
-      <button onclick="clearAllData()" style="background:rgba(200,135,135,.2)">🗑️ 清空</button>
+      <button id="btnClearAll" onclick="clearAllData()" style="background:rgba(200,135,135,.2);display:none">🗑️ 清空</button>
       <button onclick="addToHomeScreen()" style="background:rgba(255,201,202,.3)">📱 添加桌面</button>
       <button onclick="logout()" style="background:rgba(200,135,135,.2)">🚪 退出</button>
     </div>
@@ -545,6 +545,7 @@ let state={products:[],transactions:[]};
 let currentCategory=null;
 let isLoading=false;
 let currentOperator=null;
+function isAdmin(){return currentOperator==='11';}
 let txFilter={start:'',end:'',sku:''};
 const TX_PAGE_SIZE=20;
 let txPagination={page:1};
@@ -901,7 +902,7 @@ function renderInbound(){
   const body=document.getElementById('inboundBody');
   const foot=document.getElementById('inboundFoot');
   if(rows.length===0){body.innerHTML=`<tr><td colspan="9"><div class="empty">暂无入库记录</div></td></tr>`;foot.style.display='none';return;}
-  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-success"><strong>+${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="openEditTransactionModal('${t.id}')">✏️</button><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
+  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-success"><strong>+${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center">${isAdmin()?`<button class="btn btn-outline btn-sm" onclick="openEditTransactionModal('${t.id}')">✏️</button><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button>`:'—'}</td></tr>`;}).join('');
   const totalQty=rows.reduce((s,t)=>s+t.qty,0);
   const totalAmt=rows.reduce((s,t)=>s+t.qty*(t.price||0),0);
   document.getElementById('inTotalQty').textContent='+'+fmt(totalQty);
@@ -964,7 +965,7 @@ function renderOutbound(){
   const body=document.getElementById('outboundBody');
   const foot=document.getElementById('outboundFoot');
   if(rows.length===0){body.innerHTML=`<tr><td colspan="10"><div class="empty">暂无出库记录</div></td></tr>`;foot.style.display='none';return;}
-  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-danger"><strong>-${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.salesChannel)||'—'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center"><button class="btn btn-outline btn-sm" onclick="openEditTransactionModal('${t.id}')">✏️</button><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button></td></tr>`;}).join('');
+  body.innerHTML=rows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDate(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-danger"><strong>-${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${escapeHtml(t.salesChannel)||'—'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center">${isAdmin()?`<button class="btn btn-outline btn-sm" onclick="openEditTransactionModal('${t.id}')">✏️</button><button class="btn btn-outline btn-sm" onclick="deleteTransaction('${t.id}')">🗑️</button>`:'—'}</td></tr>`;}).join('');
   const totalQty=rows.reduce((s,t)=>s+t.qty,0);
   const totalAmt=rows.reduce((s,t)=>s+t.qty*(t.price||0),0);
   document.getElementById('outTotalQty').textContent='-'+fmt(totalQty);
@@ -972,7 +973,7 @@ function renderOutbound(){
   document.getElementById('outTotalCount').textContent=`共 ${rows.length} 条记录`;
   foot.style.display='';
 }
-async function deleteTransaction(id){if(confirm('确定删除这条流水记录吗？')){try{await Cloud.deleteTransaction(id);await loadCloudData();toast('记录已删除','success');}catch(e){toast('删除失败','error');}}}
+async function deleteTransaction(id){if(!isAdmin()){toast('仅管理员(11)可删除记录','error');return;}if(confirm('确定删除这条流水记录吗？')){try{await Cloud.deleteTransaction(id);await loadCloudData();toast('记录已删除','success');}catch(e){toast('删除失败','error');}}}
 let editingTxId=null;
 async function openEditTransactionModal(id){
   const t=state.transactions.find(x=>x.id===id);
@@ -990,6 +991,7 @@ async function openEditTransactionModal(id){
   document.getElementById('editTxModal').classList.add('show');
 }
 async function saveEditTransaction(){
+  if(!isAdmin()){toast('仅管理员(11)可修改记录','error');return;}
   if(!editingTxId){toast('未选中记录','error');return;}
   const qty=parseInt(document.getElementById('editTxQty').value);
   if(!qty||qty<=0){toast('请填写正确的数量','error');return;}
@@ -1186,6 +1188,9 @@ function logout(){
 
 function initApp(){
   applyCatNavCollapsedState();
+  // 只有 11 账号显示「清空」按钮
+  const btnClear=document.getElementById('btnClearAll');
+  if(btnClear)btnClear.style.display=isAdmin()?'':'none';
   renderStatsBar();renderCatNav();renderHome();
   loadCloudData();
   setInterval(()=>{loadCloudData();},30000);
