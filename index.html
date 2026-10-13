@@ -625,6 +625,9 @@ tbody tr:last-child td{border-bottom:none}
         <div class="form-group"><label>日期时间</label><input type="datetime-local" id="editTxDate"></div>
         <div class="form-group"><label id="editTxOperatorLabel">操作人</label><select id="editTxOperator"><option value="11">11</option><option value="笋笋">笋笋</option><option value="小碗">小碗</option></select></div>
       </div>
+      <div class="form-row">
+        <div class="form-group"><label>类型</label><select id="editTxKind"><option value="实际出/入库">实际出/入库</option><option value="虚拟出/入库">虚拟出/入库</option></select></div>
+      </div>
       <div class="form-group" id="editTxChannelWrap"><label>出库渠道</label><select id="editTxChannel"><option value="">—</option><option value="微店">微店</option><option value="闲鱼">闲鱼</option><option value="抖音">抖音</option><option value="微信">微信</option><option value="线下">线下</option></select></div>
       <div class="form-group"><label>备注</label><textarea id="editTxNotes" placeholder="备注信息"></textarea></div>
     </div>
@@ -702,7 +705,7 @@ const Cloud={
     return r.json().catch(()=>({}));
   },
   async deleteTransaction(id){await fetch(API_BASE+'/transactions?id=eq.'+id,{method:'DELETE',headers:API_HEADERS});},
-  async updateTransaction(id,data){const body={qty:data.qty,price:data.price,date:data.date,operator:data.operator,notes:data.notes};if(data.salesChannel!==undefined)body.sales_channel=data.salesChannel;return fetch(API_BASE+'/transactions?id=eq.'+id,{method:'PATCH',headers:API_HEADERS,body:JSON.stringify(body)}).then(r=>{if(!r.ok)throw new Error('update failed '+r.status);return r.json();});},
+  async updateTransaction(id,data){const body={qty:data.qty,price:data.price,date:data.date,operator:data.operator,notes:data.notes};if(data.salesChannel!==undefined)body.sales_channel=data.salesChannel;if(data.txKind!==undefined)body.tx_kind=data.txKind;let r=await fetch(API_BASE+'/transactions?id=eq.'+id,{method:'PATCH',headers:API_HEADERS,body:JSON.stringify(body)});if(!r.ok){const txt=await r.text();if(/tx_kind|column/i.test(txt)){const b2={...body};delete b2.tx_kind;r=await fetch(API_BASE+'/transactions?id=eq.'+id,{method:'PATCH',headers:API_HEADERS,body:JSON.stringify(b2)});}}if(!r.ok)throw new Error('update failed '+r.status);return r.json();},
   async deleteAll(){await fetch(API_BASE+'/transactions?id=neq.x',{method:'DELETE',headers:API_HEADERS});await fetch(API_BASE+'/products?id=neq.x',{method:'DELETE',headers:API_HEADERS});}
 };
 
@@ -1377,6 +1380,7 @@ async function openEditTransactionModal(id){
   if(t.type==='out'){chWrap.style.display='';document.getElementById('editTxChannel').value=t.salesChannel||'';}
   else{chWrap.style.display='none';}
   document.getElementById('editTxNotes').value=t.notes||'';
+  document.getElementById('editTxKind').value=t.txKind||'实际出/入库';
   document.getElementById('editTxModal').classList.add('show');
 }
 async function saveEditTransaction(){
@@ -1389,13 +1393,14 @@ async function saveEditTransaction(){
   const dateStr=dateRaw?dateRaw.replace('T',' ')+':00':nowTime();
   const operator=document.getElementById('editTxOperator').value;
   const notes=document.getElementById('editTxNotes').value.trim();
+  const txKind=document.getElementById('editTxKind').value;
   const t=state.transactions.find(x=>x.id===editingTxId);
-  const data={qty,price,date:dateStr,operator,notes};
+  const data={qty,price,date:dateStr,operator,notes,txKind};
   if(t&&t.type==='out'){data.salesChannel=document.getElementById('editTxChannel').value;}
   try{
     await Cloud.updateTransaction(editingTxId,data);
     // 先更新本地数据并立即重绘，避免与 30s 自动刷新的 isLoading 竞态导致界面不刷新
-    if(t){t.qty=qty;t.price=price;t.date=dateStr;t.operator=operator;t.notes=notes;if(t.type==='out')t.salesChannel=document.getElementById('editTxChannel').value;}
+    if(t){t.qty=qty;t.price=price;t.date=dateStr;t.operator=operator;t.notes=notes;t.txKind=txKind;if(t.type==='out')t.salesChannel=document.getElementById('editTxChannel').value;}
     closeModal('editTxModal');
     refresh();
     toast('记录已更新','success');
