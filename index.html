@@ -473,6 +473,16 @@ tbody tr:last-child td{border-bottom:none}
         <div class="panel-header"><h2>✅ 审批中心</h2><span style="font-size:12px;color:var(--muted)">笋笋 / 小碗 提交的修改或删除申请</span></div>
         <div class="table-wrap"><table><thead><tr><th>大类 / SKU</th><th>类型</th><th>申请内容</th><th>申请人</th><th class="text-muted">提交时间</th><th class="text-center">操作</th></tr></thead><tbody id="approveBody"></tbody></table></div>
       </div>
+      <!-- 审批记录：已处理的申请，每页 30 条 -->
+      <div class="panel">
+        <div class="panel-header"><h2>📜 审批记录</h2>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--muted)">已处理的申请 · 每页 30 条</span>
+            <select id="filterApproveHist" onchange="approveHistPage=1;renderApprovalHistory()" style="padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px"><option value="">全部结果</option><option value="approved">已通过</option><option value="rejected">已拒绝</option></select>
+          </div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>大类 / SKU</th><th>类型</th><th>申请内容</th><th>申请人</th><th class="text-muted">提交时间</th><th>处理结果</th><th class="text-muted">审批时间</th><th>审批人</th></tr></thead><tbody id="approveHistBody"></tbody></table></div>
+      </div>
     </div>
   </main>
 </div>
@@ -706,6 +716,7 @@ const Cloud={
   },
   async deleteTransaction(id){await fetch(API_BASE+'/transactions?id=eq.'+id,{method:'DELETE',headers:API_HEADERS});},
   async updateTransaction(id,data){const body={qty:data.qty,price:data.price,date:data.date,operator:data.operator,notes:data.notes};if(data.salesChannel!==undefined)body.sales_channel=data.salesChannel;if(data.txKind!==undefined)body.tx_kind=data.txKind;let r=await fetch(API_BASE+'/transactions?id=eq.'+id,{method:'PATCH',headers:API_HEADERS,body:JSON.stringify(body)});if(!r.ok){const txt=await r.text();if(/tx_kind|column/i.test(txt)){const b2={...body};delete b2.tx_kind;r=await fetch(API_BASE+'/transactions?id=eq.'+id,{method:'PATCH',headers:API_HEADERS,body:JSON.stringify(b2)});}}if(!r.ok)throw new Error('update failed '+r.status);return r.json();},
+  async updateRequestNotes(id,notes){const r=await fetch(API_BASE+'/transactions?id=eq.'+id,{method:'PATCH',headers:API_HEADERS,body:JSON.stringify({notes})});if(!r.ok){const t=await r.text();throw new Error(t);}return r.json();},
   async deleteAll(){await fetch(API_BASE+'/transactions?id=neq.x',{method:'DELETE',headers:API_HEADERS});await fetch(API_BASE+'/products?id=neq.x',{method:'DELETE',headers:API_HEADERS});}
 };
 
@@ -718,7 +729,7 @@ let txFilter={start:'',end:'',sku:''};
 const TX_PAGE_SIZE=20;
 let txPagination={page:1};
 const REC_PAGE_SIZE=30;
-let inPage=1,outPage=1,lastInFilter='',lastOutFilter='';
+let inPage=1,outPage=1,lastInFilter='',lastOutFilter='',approveHistPage=1;
 let personStockOperator='';
 
 const fmt=n=>(n||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:2});
@@ -819,7 +830,7 @@ function renderStatsBar(){
   let totalStock=0,totalValue=0,low=0,out=0,inAmt=0,outAmt=0;
   const costInfo=buildAvgCostMap();
   state.products.forEach(p=>{const s=calcStock(p.id);totalStock+=s;totalValue+=s>0?s*currentAvgCost(costInfo,p.id,p):0;if(s<=0)out++;else if(s<=(p.safetyStock||0))low++;});
-  state.transactions.forEach(t=>{if(t.type==='in')inAmt+=t.qty*(t.price||0);else outAmt+=t.qty*(t.price||0);});
+  state.transactions.forEach(t=>{if(t.type==='in')inAmt+=t.qty*(t.price||0);else if(t.type==='out')outAmt+=t.qty*(t.price||0);});
   const cards=[
     {cls:'blue',icon:'📦',label:'商品大类',value:getCategories().length,sub:'个'},
     {cls:'green',icon:'📊',label:'总库存量',value:fmt(totalStock),sub:'件'},
@@ -883,7 +894,7 @@ function renderAll(){
 async function deleteSku(id){
   if(!isAdmin()){toast('仅管理员(11)可删除商品','error');return;}
   const p=getProduct(id);if(!p)return;
-  if(!confirm(`确定删除「${p.category} - ${p.sku}」吗？\n该商品及其所有出入库流水（含待审批申请）将被永久删除，不可恢复。`))return;
+  if(!confirm(`确定删除「${p.category} - ${p.sku}」吗？\n该商品及其所有出入库流水（含审批申请与审批记录）将被永久删除，不可恢复。`))return;
   try{
     const related=state.transactions.filter(t=>t.productId===id).map(t=>Cloud.deleteTransaction(t.id));
     await Promise.all(related);
@@ -918,7 +929,7 @@ function renderCategoryDetail(cat){
     </div>`;
   }).join('');
   // 最近流水（筛选+分页）
-  let txs=state.transactions.filter(t=>{const prod=getProduct(t.productId);return prod&&prod.category===cat});
+  let txs=state.transactions.filter(t=>{const prod=getProduct(t.productId);return prod&&prod.category===cat&&(t.type==='in'||t.type==='out')});
   if(txFilter.start)txs=txs.filter(t=>t.date>=txFilter.start);
   if(txFilter.end)txs=txs.filter(t=>t.date<=txFilter.end);
   if(txFilter.sku){
@@ -1333,8 +1344,8 @@ function renderApprove(){
   const list=getPendingRequests();
   document.getElementById('nav-approve').textContent=list.length;
   const body=document.getElementById('approveBody');
-  if(list.length===0){body.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="icon">✅</div>暂无待审批的申请</div></td></tr>`;return;}
-  body.innerHTML=list.map(({row,req})=>{
+  if(list.length===0){body.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="icon">✅</div>暂无待审批的申请</div></td></tr>`;}
+  else{body.innerHTML=list.map(({row,req})=>{
     const t=state.transactions.find(x=>x.id===req.targetId);
     const p=getProduct(t?t.productId:row.productId);
     const cat=p?escapeHtml(p.category):'—';const sku=p?escapeHtml(p.sku):'—';
@@ -1351,7 +1362,56 @@ function renderApprove(){
       <td class="text-muted">${at}</td>
       <td class="text-center"><button class="btn btn-success btn-sm" onclick="approveRequest('${row.id}')">通过</button> <button class="btn btn-outline btn-sm" onclick="rejectRequest('${row.id}')">拒绝</button></td>
     </tr>`;
-  }).join('');
+  }).join('');}
+  renderApprovalHistory();
+}
+
+/* ===== 审批记录：已处理的申请，每页 30 条 ===== */
+function getApprovalHistory(){
+  return state.transactions.filter(t=>isReqRow(t)).map(t=>({row:t,req:parseReq(t)}))
+    .filter(x=>x.req&&(x.req.status==='approved'||x.req.status==='rejected'))
+    .sort((a,b)=>(b.req.decidedAt||b.req.at||0)-(a.req.decidedAt||a.req.at||0));
+}
+function goApproveHistPage(p){approveHistPage=p;renderApprovalHistory();}
+function renderApprovalHistory(){
+  const body=document.getElementById('approveHistBody');if(!body)return;
+  const fEl=document.getElementById('filterApproveHist');const f=fEl?fEl.value:'';
+  let list=getApprovalHistory();
+  if(f)list=list.filter(x=>x.req.status===f);
+  const total=list.length,totalPages=Math.max(1,Math.ceil(total/REC_PAGE_SIZE));
+  if(approveHistPage>totalPages)approveHistPage=totalPages;
+  if(approveHistPage<1)approveHistPage=1;
+  const rows=list.slice((approveHistPage-1)*REC_PAGE_SIZE,approveHistPage*REC_PAGE_SIZE);
+  if(total===0){body.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="icon">📜</div>暂无审批记录<br><span style="font-size:12px;color:var(--muted)">从现在起，审批通过或拒绝的申请会自动留在这里</span></div></td></tr>`;return;}
+  body.innerHTML=rows.map(({row,req})=>{
+    const p=getProduct(row.productId);
+    const cat=p?escapeHtml(p.category):'—',sku=p?escapeHtml(p.sku):'—';
+    const tt=req.targetType==='out'?'出库':'入库';
+    const o=req.original||{},n=req.proposed||{};
+    const detail=req.action==='delete'
+      ? `申请 <b style="color:var(--danger)">删除</b> 该${tt}记录（${fmt(o.qty||0)} 件）`
+      : `申请 <b style="color:var(--primary)">修改</b> 该${tt}记录：数量 ${fmt(o.qty||0)}→${fmt(n.qty||0)}，单价 ${fmtMoney(o.price||0)}→${fmtMoney(n.price||0)}`;
+    const at=req.at?fmtDateCell(localStamp(req.at)):'—';
+    const dat=req.decidedAt?fmtDateCell(localStamp(req.decidedAt)):'—';
+    const ok=req.status==='approved';
+    const badge=ok
+      ? `<span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;background:#e6f7ee;color:#2bb673;font-weight:600">✅ 已通过</span>`
+      : `<span style="display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;background:#fdeaea;color:#e05b5b;font-weight:600">❌ 已拒绝</span>`;
+    return `<tr>
+      <td><strong>${cat}</strong><br><span class="text-muted">${sku}</span></td>
+      <td>${tt}</td><td>${detail}</td><td>${escapeHtml(req.by||'—')}</td>
+      <td class="text-muted">${at}</td><td>${badge}</td>
+      <td class="text-muted">${dat}</td><td>${escapeHtml(req.decidedBy||'—')}</td>
+    </tr>`;
+  }).join('')+`<tr><td colspan="8"><div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 0"><span style="font-size:12px;color:var(--muted)">共 ${total} 条 · 每页 30 条 · 第 ${approveHistPage}/${totalPages} 页</span><button class="btn btn-outline btn-sm" onclick="goApproveHistPage(${approveHistPage-1})" ${approveHistPage<=1?'disabled':''}>‹ 上一页</button><button class="btn btn-outline btn-sm" onclick="goApproveHistPage(${approveHistPage+1})" ${approveHistPage>=totalPages?'disabled':''}>下一页 ›</button></div></td></tr>`;
+}
+async function finishRequest(row,req,status){
+  // 审批结果写回申请行自身的 notes（不新增表/列），从此保留审批留痕
+  req.status=status;req.decidedBy=currentOperator;req.decidedAt=Date.now();
+  let noteObj={};try{noteObj=JSON.parse(row.notes||'{}')||{};}catch(e){}
+  noteObj.req=req;
+  try{await Cloud.updateRequestNotes(row.id,JSON.stringify(noteObj));}
+  catch(e){await Cloud.deleteTransaction(row.id);} // 极端情况降级：避免申请重复出现在待审批
 }
 async function approveRequest(reqId){
   const row=state.transactions.find(x=>x.id===reqId);if(!row)return;const req=parseReq(row);if(!req)return;
@@ -1359,12 +1419,13 @@ async function approveRequest(reqId){
   try{
     if(req.action==='delete'){await Cloud.deleteTransaction(req.targetId);}
     else{const n=req.proposed;const target=state.transactions.find(x=>x.id===req.targetId);const body={qty:n.qty,price:n.price,date:n.date,notes:n.notes,operator:(target&&target.operator)||row.operator};if(target&&target.type==='out')body.salesChannel=n.channel;await Cloud.updateTransaction(req.targetId,body);}
-    await Cloud.deleteTransaction(reqId);await loadCloudData();toast('已通过并执行','success');
+    await finishRequest(row,req,'approved');await loadCloudData();toast('已通过并执行','success');
   }catch(e){toast('操作失败','error');}
 }
 async function rejectRequest(reqId){
   if(!confirm('拒绝这条申请？'))return;
-  try{await Cloud.deleteTransaction(reqId);await loadCloudData();toast('已拒绝','success');}catch(e){toast('操作失败','error');}
+  const row=state.transactions.find(x=>x.id===reqId);if(!row)return;const req=parseReq(row);if(!req)return;
+  try{await finishRequest(row,req,'rejected');await loadCloudData();toast('已拒绝','success');}catch(e){toast('操作失败','error');}
 }
 let editingTxId=null;
 async function openEditTransactionModal(id){
