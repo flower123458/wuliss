@@ -745,6 +745,10 @@ function toast(msg,type=''){const t=document.getElementById('toast');t.textConte
 function escapeHtml(s){return(s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function calcStock(pid){return state.transactions.filter(t=>t.productId===pid&&(t.type==='in'||t.type==='out')).reduce((s,t)=>s+(t.type==='in'?t.qty:-t.qty),0)}
 function getProduct(id){return state.products.find(p=>p.id===id)}
+function prodCatCell(p){return p?`<strong>${escapeHtml(p.category)}</strong>`:`<strong class="text-muted">已删SKU</strong>`;}
+function prodSkuCell(p){return p?escapeHtml(p.sku):`<span class="text-muted">已删SKU</span>`;}
+function prodCatText(p){return p?p.category:'(已删SKU)';}
+function prodSkuText(p){return p?p.sku:'(已删SKU)';}
 function getStatus(p){const s=calcStock(p.id);return s<=0?'out':s<=(p.safetyStock||0)?'low':'normal'}
 
 function collapseSidebar(){const sb=document.getElementById('sidebar');const main=document.getElementById('main');sb.classList.toggle('collapsed');main.classList.toggle('full');}
@@ -894,13 +898,12 @@ function renderAll(){
 async function deleteSku(id){
   if(!isAdmin()){toast('仅管理员(11)可删除商品','error');return;}
   const p=getProduct(id);if(!p)return;
-  if(!confirm(`确定删除「${p.category} - ${p.sku}」吗？\n该商品及其所有出入库流水（含审批申请与审批记录）将被永久删除，不可恢复。`))return;
+  const n=state.transactions.filter(t=>t.productId===id).length;
+  if(!confirm(`确定删除「${p.category} - ${p.sku}」吗？\n\n仅删除该商品档案；其历史出入库流水（${n} 条）与审批记录会全部保留，不会被删除。`))return;
   try{
-    const related=state.transactions.filter(t=>t.productId===id).map(t=>Cloud.deleteTransaction(t.id));
-    await Promise.all(related);
     await Cloud.deleteProduct(id);
     await loadCloudData();
-    toast(`已删除「${p.sku}」`,'success');
+    toast(`已删除「${p.sku}」，历史流水已保留`,'success');
   }catch(e){console.error(e);toast('删除失败','error');}
 }
 
@@ -1161,7 +1164,7 @@ function renderInbound(){
   const foot=document.getElementById('inboundFoot');
   if(rows.length===0){body.innerHTML=`<tr><td colspan="10"><div class="empty">暂无入库记录</div></td></tr>`;foot.style.display='none';return;}
   const pendingSet=new Set(getPendingRequests().map(x=>x.req.targetId));
-  body.innerHTML=pageRows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDateCell(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-success"><strong>+${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${t.txKind||'实际出/入库'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center">${txActionCell(t,pendingSet)}</td></tr>`;}).join('');
+  body.innerHTML=pageRows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDateCell(t.date)}</td><td>${prodCatCell(p)}</td><td>${prodSkuCell(p)}</td><td class="text-right text-success"><strong>+${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${t.txKind||'实际出/入库'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center">${txActionCell(t,pendingSet)}</td></tr>`;}).join('');
   if(totalPages>1){
     body.innerHTML+=`<tr><td colspan="10"><div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 0"><span style="font-size:12px;color:var(--muted)">共 ${totalCount} 条 · 第 ${inPage}/${totalPages} 页</span><button class="btn btn-outline btn-sm" onclick="goInPage(${inPage-1})" ${inPage<=1?'disabled':''}>‹ 上一页</button><button class="btn btn-outline btn-sm" onclick="goInPage(${inPage+1})" ${inPage>=totalPages?'disabled':''}>下一页 ›</button></div></td></tr>`;
   }
@@ -1238,7 +1241,7 @@ function renderOutbound(){
   const foot=document.getElementById('outboundFoot');
   if(rows.length===0){body.innerHTML=`<tr><td colspan="11"><div class="empty">暂无出库记录</div></td></tr>`;foot.style.display='none';return;}
   const pendingSet=new Set(getPendingRequests().map(x=>x.req.targetId));
-  body.innerHTML=pageRows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDateCell(t.date)}</td><td><strong>${p?escapeHtml(p.category):'—'}</strong></td><td>${p?escapeHtml(p.sku):'—'}</td><td class="text-right text-danger"><strong>-${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${t.txKind||'实际出/入库'}</td><td>${escapeHtml(t.salesChannel)||'—'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center">${txActionCell(t,pendingSet)}</td></tr>`;}).join('');
+  body.innerHTML=pageRows.map(t=>{const p=getProduct(t.productId);return `<tr><td class="nowrap">${fmtDateCell(t.date)}</td><td>${prodCatCell(p)}</td><td>${prodSkuCell(p)}</td><td class="text-right text-danger"><strong>-${fmt(t.qty)}</strong></td><td class="text-right">${t.price?fmtMoney(t.price):'—'}</td><td class="text-right">${fmtMoney(t.qty*t.price)}</td><td>${t.txKind||'实际出/入库'}</td><td>${escapeHtml(t.salesChannel)||'—'}</td><td>${escapeHtml(t.operator)||'—'}</td><td class="text-muted">${escapeHtml(t.notes)||'—'}</td><td class="text-center">${txActionCell(t,pendingSet)}</td></tr>`;}).join('');
   if(totalPages>1){
     body.innerHTML+=`<tr><td colspan="11"><div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 0"><span style="font-size:12px;color:var(--muted)">共 ${totalCount} 条 · 第 ${outPage}/${totalPages} 页</span><button class="btn btn-outline btn-sm" onclick="goOutPage(${outPage-1})" ${outPage<=1?'disabled':''}>‹ 上一页</button><button class="btn btn-outline btn-sm" onclick="goOutPage(${outPage+1})" ${outPage>=totalPages?'disabled':''}>下一页 ›</button></div></td></tr>`;
   }
@@ -1515,11 +1518,11 @@ async function exportExcel(s,e){
   const ws1=XLSX.utils.json_to_sheet(stockRows);
   ws1['!cols']=[{wch:12},{wch:12},{wch:10},{wch:8},{wch:10},{wch:8},{wch:8},{wch:10}];
   XLSX.utils.book_append_sheet(wb,ws1,'SKU库存清单');
-  const inRows=txs.filter(t=>t.type==='in').sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(t=>{const p=getProduct(t.productId);return{日期:t.date||'',大类:p?p.category:'',SKU:p?p.sku:'',数量:t.qty,单价:t.price||0,金额:t.qty*(t.price||0),类型:t.txKind||'实际出/入库',入库人:t.operator||'',备注:t.notes||''};});
+  const inRows=txs.filter(t=>t.type==='in').sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(t=>{const p=getProduct(t.productId);return{日期:t.date||'',大类:prodCatText(p),SKU:prodSkuText(p),数量:t.qty,单价:t.price||0,金额:t.qty*(t.price||0),类型:t.txKind||'实际出/入库',入库人:t.operator||'',备注:t.notes||''};});
   const ws2=XLSX.utils.json_to_sheet(inRows);
   ws2['!cols']=[{wch:12},{wch:12},{wch:12},{wch:8},{wch:10},{wch:10},{wch:10},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws2,'入库记录');
-  const outRows=txs.filter(t=>t.type==='out').sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(t=>{const p=getProduct(t.productId);return{日期:t.date||'',大类:p?p.category:'',SKU:p?p.sku:'',数量:t.qty,单价:t.price||0,金额:t.qty*(t.price||0),类型:t.txKind||'实际出/入库',出库渠道:t.salesChannel||'',出库人:t.operator||'',备注:t.notes||''};});
+  const outRows=txs.filter(t=>t.type==='out').sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(t=>{const p=getProduct(t.productId);return{日期:t.date||'',大类:prodCatText(p),SKU:prodSkuText(p),数量:t.qty,单价:t.price||0,金额:t.qty*(t.price||0),类型:t.txKind||'实际出/入库',出库渠道:t.salesChannel||'',出库人:t.operator||'',备注:t.notes||''};});
   const ws3=XLSX.utils.json_to_sheet(outRows);
   ws3['!cols']=[{wch:12},{wch:12},{wch:12},{wch:8},{wch:10},{wch:10},{wch:12},{wch:10},{wch:20}];
   XLSX.utils.book_append_sheet(wb,ws3,'出库记录');
